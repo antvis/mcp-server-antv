@@ -42,7 +42,7 @@ export class AntVAssistantTool {
         properties: {
           library: {
             type: 'string',
-            enum: ['g2', 'g6', 'l7', 'x6', 'f2'],
+            enum: ['g2', 'g6', 'l7', 'x6', 'f2', 's2'],
             description: 'AntV 库名称',
           },
           query: {
@@ -109,7 +109,9 @@ export class AntVAssistantTool {
         content: [
           {
             type: 'text',
-            text: `❌ 处理失败: ${error instanceof Error ? error.message : '未知错误'}`,
+            text: `❌ 处理失败: ${
+              error instanceof Error ? error.message : '未知错误'
+            }`,
           },
         ],
         isError: true,

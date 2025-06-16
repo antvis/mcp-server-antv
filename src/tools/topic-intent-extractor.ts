@@ -66,7 +66,7 @@ export class TopicIntentExtractorTool {
           },
           library: {
             type: 'string',
-            enum: ['g2', 'g6', 'l7', 'x6', 'f2'],
+            enum: ['g2', 'g6', 'l7', 'x6', 'f2', 's2'],
             description: 'AntV 库名称',
           },
           maxTopics: {
@@ -116,7 +116,9 @@ export class TopicIntentExtractorTool {
         content: [
           {
             type: 'text',
-            text: `❌ 生成提取任务失败: ${error instanceof Error ? error.message : '未知错误'}`,
+            text: `❌ 生成提取任务失败: ${
+              error instanceof Error ? error.message : '未知错误'
+            }`,
           },
         ],
         isError: true,

@@ -41,7 +41,6 @@ class AntVMcpServer {
   private readonly server: Server;
   private readonly tools: ToolRegistry;
   private readonly logger: Logger;
-  private transport?: StdioServerTransport;
 
   constructor() {
     this.server = new Server({
@@ -172,8 +171,8 @@ class AntVMcpServer {
    */
   async run(): Promise<void> {
     try {
-      this.transport = new StdioServerTransport();
-      await this.server.connect(this.transport);
+      const transport = new StdioServerTransport();
+      await this.server.connect(transport);
 
       this.logger.info('AntV MCP Server started with stdio transport');
     } catch (error) {
@@ -189,12 +188,6 @@ class AntVMcpServer {
     this.logger.info('Shutting down AntV MCP Server...');
 
     try {
-      // 关闭 MCP 服务器连接
-      if (this.transport) {
-        await this.server.close();
-        this.logger.debug('MCP server connection closed');
-      }
-
       this.logger.info('AntV MCP Server shutdown complete');
     } catch (error) {
       this.logger.error('Error during shutdown:', error);

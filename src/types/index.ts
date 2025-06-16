@@ -3,7 +3,7 @@
  */
 
 // AntV 库类型
-export type AntVLibrary = 'g2' | 'g6' | 'l7' | 'x6' | 'f2';
+export type AntVLibrary = 'g2' | 'g6' | 'l7' | 'x6' | 'f2' | 's2';
 
 // 工具参数接口
 export interface AntVAssistantArgs {

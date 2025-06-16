@@ -8,12 +8,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "tsc --watch",
-    "clean": "rm -rf dist",
-    "test": "jest",
-    "test:tools": "npm run build && node test/manual-test.js",
-    "test:server": "npm run build && node test/mcp-server.test.js",
-    "test:simple": "npm run build && node test/simple-test.js",
-    "test:local": "npm run test:simple"
+    "clean": "rm -rf dist"
   },
   "keywords": [
     "mcp",
@@ -30,9 +25,7 @@
   "devDependencies": {
     "@types/node": "^20.0.0",
     "typescript": "^5.0.0",
-    "tsx": "^4.0.0",
-    "@types/jest": "^29.0.0",
-    "jest": "^29.0.0"
+    "tsx": "^4.0.0"
   },
   "bin": {
     "mcp-server-antv": "./dist/index.js"
