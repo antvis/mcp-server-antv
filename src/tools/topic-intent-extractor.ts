@@ -1,8 +1,11 @@
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import type { AntVLibrary } from '../types/index.js';
 import { Logger, LogLevel } from '../utils/logger.js';
-import { getLibraryConfig, isValidLibrary } from '../config/index.js';
-
+import {
+  getLibraryConfig,
+  isValidLibrary,
+  LIBRARY_KEYWORDS_MAPPING,
+} from '../config/index.js';
 export interface TopicIntentExtractorArgs {
   query: string;
   library: AntVLibrary;
@@ -92,7 +95,7 @@ export class TopicIntentExtractorTool {
    * 执行工具
    */
   async execute(
-    args: TopicIntentExtractorArgs,
+    args: TopicIntentExtractorArgs
   ): Promise<TopicIntentExtractorResult> {
     try {
       this.validateArgs(args);
@@ -166,7 +169,9 @@ export class TopicIntentExtractorTool {
     return `# 🔍 AntV 主题和意图提取任务
 
 ## 📋 任务目标
-从用户查询中提取最相关的技术主题短语和用户意图，用于 ${libraryContext.name} 文档检索。
+从用户查询中提取最相关的技术主题短语和用户意图，用于 ${
+      libraryContext.name
+    } 文档检索。
 
 ## 🎯 用户查询
 \`\`\`
@@ -184,13 +189,16 @@ ${args.query}
 
 ### 2. 主题短语提取
 - **来源限制**: 只从用户查询内容中提取，不要添加查询中没有的概念
-- **数量要求**: 最多 ${maxTopics} 个，如果查询简单可以少于这个数量
+- **数量要求**: 最多 ${maxTopics} 个，可以少于这个数量
 - **格式要求**:
-  - 提取有意义的短语组合（2-4个词）
+  - 提取有意义的短语组合（1-4个词）
   - 避免单个词汇或过长的句子
-  - 翻译成英文，保持技术准确性
+  - 保证词汇间差异性，避免重复
+  - 组件、概念、术语有${
+    LIBRARY_KEYWORDS_MAPPING[libraryContext.id]
+  }。翻译成英文，保持技术准确性
 - **优先级**:
-  1. ${libraryContext.name} 特有的概念和API
+  1. ${libraryContext.name} 特有的组件概念和API
   2. 图表类型和可视化概念
   3. 交互、动画效果、数据处理和配置
 
