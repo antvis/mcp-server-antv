@@ -1,0 +1,22 @@
+
+# Finder (MacOS) folder config
+.DS_Store
+package-lock.json
+
+# Cursor (VSCode) config
+.history
+.lh
+
+# VSCode config
+.vscode
+
+# Node modules
+node_modules
+
+# Dist directory
+dist
+
+# Environment variables
+.env
+
+
