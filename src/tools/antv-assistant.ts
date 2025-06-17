@@ -1,12 +1,12 @@
-import type { Tool } from "@modelcontextprotocol/sdk/types.js";
-import type { AntVAssistantArgs, AntVAssistantResult } from "../types/index.js";
-import { Context7Service } from "../services/context7.js";
-import { Logger, LogLevel } from "../utils/logger.js";
+import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import type { AntVAssistantArgs, AntVAssistantResult } from '../types/index.js';
+import { Context7Service } from '../services/context7.js';
+import { Logger, LogLevel } from '../utils/logger.js';
 import {
   getLibraryConfig,
   isValidLibrary,
   DEFAULT_CONFIG,
-} from "../config/index.js";
+} from '../config/index.js';
 
 /**
  * AntV 文档问答助手工具
@@ -24,7 +24,7 @@ export class AntVAssistantTool {
 
     this.logger = new Logger({
       level: LogLevel.INFO,
-      prefix: "AntVAssistant",
+      prefix: 'AntVAssistant',
     });
   }
 
@@ -35,62 +35,62 @@ export class AntVAssistantTool {
     const tokenConfig = DEFAULT_CONFIG.context7.tokens;
 
     return {
-      name: "antv_assistant",
+      name: 'antv_assistant',
       description:
-        "基于 AntV 文档的问答助手。可以处理简单查询，也可以接收预拆解的复杂任务子任务列表并一次性处理所有子任务",
+        '基于 AntV 文档的问答助手。可以处理简单查询，也可以接收预拆解的复杂任务子任务列表并一次性处理所有子任务',
       inputSchema: {
-        type: "object",
+        type: 'object',
         properties: {
           library: {
-            type: "string",
-            enum: ["g2", "g6", "l7", "x6", "f2", "s2"],
-            description: "AntV 库名称",
+            type: 'string',
+            enum: ['g2', 'g6', 'l7', 'x6', 'f2', 's2'],
+            description: 'AntV 库名称',
           },
           query: {
-            type: "string",
-            description: "用户查询",
+            type: 'string',
+            description: '用户查询',
           },
           tokens: {
-            type: "number",
+            type: 'number',
             minimum: tokenConfig.min,
             maximum: tokenConfig.max,
             default: tokenConfig.default,
-            description: "返回内容的最大 token 数量",
+            description: '返回内容的最大 token 数量',
           },
           topic: {
-            type: "string",
+            type: 'string',
             description:
-              "提取的主题短语（逗号分隔），由 topic_intent_extractor 工具提供",
+              '提取的主题短语（逗号分隔），由 topic_intent_extractor 工具提供',
           },
           intent: {
-            type: "string",
-            description: "提取的用户意图，由 topic_intent_extractor 工具提供",
+            type: 'string',
+            description: '提取的用户意图，由 topic_intent_extractor 工具提供',
           },
           subTasks: {
-            type: "array",
+            type: 'array',
             items: {
-              type: "object",
+              type: 'object',
               properties: {
                 query: {
-                  type: "string",
-                  description: "子任务查询",
+                  type: 'string',
+                  description: '子任务查询',
                 },
                 topic: {
-                  type: "string",
-                  description: "子任务主题",
+                  type: 'string',
+                  description: '子任务主题',
                 },
                 intent: {
-                  type: "string",
-                  description: "子任务意图",
+                  type: 'string',
+                  description: '子任务意图',
                 },
               },
-              required: ["query", "topic", "intent"],
+              required: ['query', 'topic', 'intent'],
             },
             description:
-              "已拆解的子任务列表（可选，如果提供则直接处理这些子任务而不是内部拆解）",
+              '已拆解的子任务列表（可选，如果提供则直接处理这些子任务而不是内部拆解）',
           },
         },
-        required: ["library", "query", "topic", "intent"],
+        required: ['library', 'query', 'topic', 'intent'],
       },
     };
   }
@@ -119,7 +119,7 @@ export class AntVAssistantTool {
           await this.handleComplexTaskWithDocCheck(
             args,
             libraryId,
-            args.subTasks
+            args.subTasks,
           );
         response = taskResponse;
         hasDocumentation = taskHasDoc;
@@ -133,7 +133,7 @@ export class AntVAssistantTool {
           const subTasks = this.extractSubTasks(
             args.query,
             args.topic,
-            args.intent
+            args.intent,
           );
           const { response: taskResponse, hasDocumentation: taskHasDoc } =
             await this.handleComplexTaskWithDocCheck(args, libraryId, subTasks);
@@ -146,10 +146,10 @@ export class AntVAssistantTool {
             await this.context7Service.fetchLibraryDocumentation(
               libraryId,
               args.topic,
-              args.tokens || DEFAULT_CONFIG.context7.tokens.default
+              args.tokens || DEFAULT_CONFIG.context7.tokens.default,
             );
           hasDocumentation =
-            documentation !== null && documentation.trim() !== "";
+            documentation !== null && documentation.trim() !== '';
           response = this.generateResponse(args, documentation);
         }
       }
@@ -157,9 +157,9 @@ export class AntVAssistantTool {
       const processingTime = Date.now() - startTime;
 
       return {
-        content: [{ type: "text", text: response }],
+        content: [{ type: 'text', text: response }],
         metadata: {
-          topics: args.topic.split(",").map((t) => t.trim()),
+          topics: args.topic.split(',').map((t) => t.trim()),
           intent: args.intent,
           library: args.library,
           hasDocumentation,
@@ -169,26 +169,26 @@ export class AntVAssistantTool {
         },
       };
     } catch (error) {
-      this.logger.error("Failed to execute assistant tool:", error);
+      this.logger.error('Failed to execute assistant tool:', error);
       const processingTime = Date.now() - startTime;
 
       return {
         content: [
           {
-            type: "text",
+            type: 'text',
             text: `❌ 处理失败: ${
-              error instanceof Error ? error.message : "未知错误"
+              error instanceof Error ? error.message : '未知错误'
             }`,
           },
         ],
         isError: true,
         metadata: {
-          topics: args.topic ? args.topic.split(",").map((t) => t.trim()) : [],
+          topics: args.topic ? args.topic.split(',').map((t) => t.trim()) : [],
           intent: args.intent,
           library: args.library,
           hasDocumentation: false,
           processingTime,
-          error: error instanceof Error ? error.message : "未知错误",
+          error: error instanceof Error ? error.message : '未知错误',
           isComplexTask: false,
           subTasksCount: 0,
         },
@@ -200,7 +200,7 @@ export class AntVAssistantTool {
    * 判断是否为复杂任务
    */
   private isComplexTask(query: string, topic: string): boolean {
-    const topicCount = topic.split(",").length;
+    const topicCount = topic.split(',').length;
     const queryLength = query.length;
 
     // 判断条件：
@@ -208,16 +208,16 @@ export class AntVAssistantTool {
     // 2. 查询长度超过50字符
     // 3. 包含多个关键动作词
     const actionWords = [
-      "创建",
-      "添加",
-      "设置",
-      "配置",
-      "实现",
-      "如何",
-      "怎么",
+      '创建',
+      '添加',
+      '设置',
+      '配置',
+      '实现',
+      '如何',
+      '怎么',
     ];
     const actionCount = actionWords.filter((word) =>
-      query.includes(word)
+      query.includes(word),
     ).length;
 
     return topicCount > 3 || queryLength > 50 || actionCount > 2;
@@ -229,19 +229,19 @@ export class AntVAssistantTool {
   private extractSubTasks(
     query: string,
     topic: string,
-    intent: string
+    intent: string,
   ): Array<{
     query: string;
     topic: string;
     intent: string;
   }> {
-    const topics = topic.split(",").map((t) => t.trim());
+    const topics = topic.split(',').map((t) => t.trim());
     const subTasks: Array<{ query: string; topic: string; intent: string }> =
       [];
 
     // 根据主题生成子任务
     for (let i = 0; i < Math.min(topics.length, 4); i += 2) {
-      const subTopics = topics.slice(i, i + 2).join(", ");
+      const subTopics = topics.slice(i, i + 2).join(', ');
       subTasks.push({
         query: `关于 ${subTopics} 的相关文档和使用方法`,
         topic: subTopics,
@@ -258,7 +258,7 @@ export class AntVAssistantTool {
   private async handleComplexTaskWithDocCheck(
     args: AntVAssistantArgs,
     libraryId: string,
-    subTasks: Array<{ query: string; topic: string; intent: string }>
+    subTasks: Array<{ query: string; topic: string; intent: string }>,
   ): Promise<{ response: string; hasDocumentation: boolean }> {
     const libraryConfig = getLibraryConfig(args.library);
     const library = libraryConfig.name;
@@ -273,9 +273,9 @@ export class AntVAssistantTool {
     const tokenPerSubTask = Math.min(
       Math.floor(
         (args.tokens || DEFAULT_CONFIG.context7.tokens.default) /
-          subTasks.length
+          subTasks.length,
       ),
-      2000 // 每个子任务最多2000 tokens
+      2000, // 每个子任务最多2000 tokens
     );
 
     const subTaskResults: Array<{ task: any; documentation: string | null }> =
@@ -285,14 +285,14 @@ export class AntVAssistantTool {
     for (const [index, subTask] of subTasks.entries()) {
       try {
         this.logger.info(
-          `Processing subtask ${index + 1}/${subTasks.length}: ${subTask.topic}`
+          `Processing subtask ${index + 1}/${subTasks.length}: ${subTask.topic}`,
         );
 
         const documentation =
           await this.context7Service.fetchLibraryDocumentation(
             libraryId,
             subTask.topic,
-            tokenPerSubTask
+            tokenPerSubTask,
           );
 
         subTaskResults.push({ task: subTask, documentation });
@@ -305,7 +305,7 @@ export class AntVAssistantTool {
     // 检查是否有有效的文档
     const hasValidDocumentation = subTaskResults.some(
       (result) =>
-        result.documentation !== null && result.documentation.trim() !== ""
+        result.documentation !== null && result.documentation.trim() !== '',
     );
 
     // 生成子任务结果
@@ -334,7 +334,7 @@ export class AntVAssistantTool {
    */
   private generateComplexTaskSummary(
     args: AntVAssistantArgs,
-    subTaskResults: Array<{ task: any; documentation: string | null }>
+    subTaskResults: Array<{ task: any; documentation: string | null }>,
   ): string {
     const successCount = subTaskResults.filter((r) => r.documentation).length;
     const totalCount = subTaskResults.length;
@@ -367,7 +367,7 @@ export class AntVAssistantTool {
    */
   private validateArgs(args: AntVAssistantArgs): void {
     if (!args.library || !args.query?.trim()) {
-      throw new Error("缺少必需参数: library 和 query");
+      throw new Error('缺少必需参数: library 和 query');
     }
 
     if (!isValidLibrary(args.library)) {
@@ -375,7 +375,7 @@ export class AntVAssistantTool {
     }
 
     if (args.topic && !args.intent) {
-      throw new Error("需要同时提供 topic 和 intent 参数");
+      throw new Error('需要同时提供 topic 和 intent 参数');
     }
   }
 
@@ -384,7 +384,7 @@ export class AntVAssistantTool {
    */
   private generateResponse(
     args: AntVAssistantArgs,
-    context: string | null
+    context: string | null,
   ): string {
     const libraryConfig = getLibraryConfig(args.library);
     const library = libraryConfig.name;
@@ -413,14 +413,14 @@ export class AntVAssistantTool {
    */
   private generateIntentSpecificGuidance(
     intent: string,
-    library: string
+    library: string,
   ): string {
     switch (intent) {
-      case "learn":
+      case 'learn':
         return this.generateLearnGuidance(library);
-      case "implement":
+      case 'implement':
         return this.generateImplementGuidance(library);
-      case "solve":
+      case 'solve':
         return this.generateSolveGuidance(library);
       default:
         return this.generateDefaultGuidance(library);
