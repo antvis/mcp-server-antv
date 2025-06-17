@@ -12,6 +12,11 @@ export interface AntVAssistantArgs {
   tokens?: number;
   topic: string;
   intent: string;
+  subTasks?: Array<{
+    query: string;
+    topic: string;
+    intent: string;
+  }>;
 }
 
 // 工具结果接口
@@ -27,6 +32,8 @@ export interface AntVAssistantResult {
     hasDocumentation: boolean;
     processingTime: number;
     error?: string;
+    isComplexTask?: boolean;
+    subTasksCount?: number;
   };
   isError?: boolean;
 }
