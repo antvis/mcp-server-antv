@@ -13,8 +13,8 @@ export const LIBRARY_MAPPING = {
 export const DEFAULT_CONFIG = {
   // Context7 服务配置
   context7: {
-    baseUrl: process.env.CONTEXT7_BASE_URL || 'https://context7.com/api',
-    timeout: parseInt(process.env.CONTEXT7_TIMEOUT || '30000'),
+    baseUrl: 'https://context7.com/api',
+    timeout: 30000,
     tokens: {
       default: 5000,
       max: 20000,
