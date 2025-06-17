@@ -111,9 +111,8 @@ export class AntVAssistantTool {
       let isComplexTask = false;
       let hasDocumentation = false;
 
-      // 如果提供了子任务，直接使用；否则判断是否为复杂任务
+      // 如果提供了子任务，是复杂任务
       if (args.subTasks && args.subTasks.length > 0) {
-        // 使用提供的子任务（复杂任务）
         isComplexTask = true;
         const { response: taskResponse, hasDocumentation: taskHasDoc } =
           await this.handleComplexTaskWithDocCheck(
@@ -125,33 +124,16 @@ export class AntVAssistantTool {
         hasDocumentation = taskHasDoc;
         subTaskResults = args.subTasks;
       } else {
-        // 检查是否为复杂任务（通过topic长度和复杂度判断）
-        isComplexTask = this.isComplexTask(args.query, args.topic);
-
-        if (isComplexTask) {
-          // 复杂任务：拆解并分别查询
-          const subTasks = this.extractSubTasks(
-            args.query,
+        // 简单任务：直接查询
+        const documentation =
+          await this.context7Service.fetchLibraryDocumentation(
+            libraryId,
             args.topic,
-            args.intent,
+            args.tokens || DEFAULT_CONFIG.context7.tokens.default,
           );
-          const { response: taskResponse, hasDocumentation: taskHasDoc } =
-            await this.handleComplexTaskWithDocCheck(args, libraryId, subTasks);
-          response = taskResponse;
-          hasDocumentation = taskHasDoc;
-          subTaskResults = subTasks;
-        } else {
-          // 简单任务：直接查询
-          const documentation =
-            await this.context7Service.fetchLibraryDocumentation(
-              libraryId,
-              args.topic,
-              args.tokens || DEFAULT_CONFIG.context7.tokens.default,
-            );
-          hasDocumentation =
-            documentation !== null && documentation.trim() !== '';
-          response = this.generateResponse(args, documentation);
-        }
+        hasDocumentation =
+          documentation !== null && documentation.trim() !== '';
+        response = this.generateResponse(args, documentation);
       }
 
       const processingTime = Date.now() - startTime;
@@ -194,62 +176,6 @@ export class AntVAssistantTool {
         },
       };
     }
-  }
-
-  /**
-   * 判断是否为复杂任务
-   */
-  private isComplexTask(query: string, topic: string): boolean {
-    const topicCount = topic.split(',').length;
-    const queryLength = query.length;
-
-    // 判断条件：
-    // 1. 主题数量超过3个
-    // 2. 查询长度超过50字符
-    // 3. 包含多个关键动作词
-    const actionWords = [
-      '创建',
-      '添加',
-      '设置',
-      '配置',
-      '实现',
-      '如何',
-      '怎么',
-    ];
-    const actionCount = actionWords.filter((word) =>
-      query.includes(word),
-    ).length;
-
-    return topicCount > 3 || queryLength > 50 || actionCount > 2;
-  }
-
-  /**
-   * 从查询中提取子任务
-   */
-  private extractSubTasks(
-    query: string,
-    topic: string,
-    intent: string,
-  ): Array<{
-    query: string;
-    topic: string;
-    intent: string;
-  }> {
-    const topics = topic.split(',').map((t) => t.trim());
-    const subTasks: Array<{ query: string; topic: string; intent: string }> =
-      [];
-
-    // 根据主题生成子任务
-    for (let i = 0; i < Math.min(topics.length, 4); i += 2) {
-      const subTopics = topics.slice(i, i + 2).join(', ');
-      subTasks.push({
-        query: `关于 ${subTopics} 的相关文档和使用方法`,
-        topic: subTopics,
-        intent: intent,
-      });
-    }
-
-    return subTasks;
   }
 
   /**
@@ -342,11 +268,7 @@ export class AntVAssistantTool {
     let summary = `基于 ${successCount}/${totalCount} 个子任务的文档查询结果：\n\n`;
 
     if (successCount === totalCount) {
-      summary += `✅ **完整解答**: 所有子任务都找到了相关文档，可以按照以下步骤进行：\n\n`;
-      summary += `1. **理解基础概念**: 先阅读基础文档，了解核心概念\n`;
-      summary += `2. **逐步实现功能**: 按照文档示例，逐个实现各项功能\n`;
-      summary += `3. **组合与优化**: 将各个功能组合起来，进行整体优化\n`;
-      summary += `4. **测试与调试**: 验证功能完整性，解决可能出现的问题\n\n`;
+      summary += `✅ **完整解答**: 所有子任务都找到了相关文档`;
     } else if (successCount > totalCount / 2) {
       summary += `⚠️ **部分解答**: 大部分子任务找到了相关文档，建议：\n\n`;
       summary += `1. 先实现有文档支持的功能\n`;
@@ -444,7 +366,6 @@ export class AntVAssistantTool {
 - 参考文档中的示例代码
 - 注意必需参数和可选参数的配置
 - 先实现基础功能，再添加高级特性
-- 添加适当的错误处理
 
 `;
   }
