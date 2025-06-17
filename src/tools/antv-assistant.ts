@@ -141,8 +141,6 @@ export class AntVAssistantTool {
           library: args.library,
           hasDocumentation,
           processingTime,
-          isComplexTask,
-          subTasksCount: subTaskResults.length,
         },
       };
     } catch (error) {
@@ -166,8 +164,6 @@ export class AntVAssistantTool {
           hasDocumentation: false,
           processingTime,
           error: error instanceof Error ? error.message : '未知错误',
-          isComplexTask: false,
-          subTasksCount: 0,
         },
       };
     }
@@ -195,7 +191,7 @@ export class AntVAssistantTool {
         (args.tokens || DEFAULT_CONFIG.context7.tokens.default) /
           subTasks.length,
       ),
-      2000, // 每个子任务最多2000 tokens
+      1000, // 每个子任务最多1000 tokens
     );
 
     const subTaskResults: Array<{ task: any; documentation: string | null }> =
