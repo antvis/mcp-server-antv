@@ -226,7 +226,9 @@ export class AntVAssistantTool {
 
     // 生成子任务结果
     for (const [index, result] of subTaskResults.entries()) {
-      response += `## 📋 子任务 ${index + 1}: ${result.task.topic}\n\n`;
+      response += `## 📋 子任务 ${index + 1}\n\n`;
+      response += `**子任务查询**: ${result.task.query}\n`;
+      response += `**子任务主题**: ${result.task.topic}\n\n`;
 
       if (result.documentation) {
         response += `${result.documentation}\n\n`;
