@@ -79,12 +79,7 @@ export class AntVAssistantTool {
                   type: 'string',
                   description: '子任务主题',
                 },
-                intent: {
-                  type: 'string',
-                  description: '子任务意图',
-                },
               },
-              required: ['query', 'topic', 'intent'],
             },
             description:
               '已拆解的子任务列表（可选，如果提供则直接处理这些子任务而不是内部拆解）',
@@ -192,7 +187,6 @@ export class AntVAssistantTool {
     let response = `# ${library} 复杂任务解答\n\n`;
     response += `**用户问题**: ${args.query}\n`;
     response += `**任务类型**: 复杂任务（已拆解为 ${subTasks.length} 个子任务）\n`;
-    response += `**搜索主题**: ${args.topic}\n`;
     response += `\n---\n\n`;
 
     // 限制每个子任务的token数量，避免返回内容过长

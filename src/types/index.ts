@@ -32,8 +32,6 @@ export interface AntVAssistantResult {
     hasDocumentation: boolean;
     processingTime: number;
     error?: string;
-    isComplexTask?: boolean;
-    subTasksCount?: number;
   };
   isError?: boolean;
 }
