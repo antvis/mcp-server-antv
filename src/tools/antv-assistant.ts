@@ -11,7 +11,7 @@ import {
 /**
  * AntV 文档问答助手工具
  *
- * 基于用户查询的主题和意图，获取相关文档并生成结构化回答
+ * 基于用户查询的主题和意图，获取相关文档并生成结构化回答。为复杂的AntV可视化问题提供结构化的思考和任务拆解过程
  */
 export class AntVAssistantTool {
   private readonly context7Service: Context7Service;
@@ -36,7 +36,8 @@ export class AntVAssistantTool {
 
     return {
       name: 'antv_assistant',
-      description: '基于 AntV 文档的问答助手',
+      description:
+        '基于 AntV 文档的问答助手。可以处理简单查询，也可以接收预拆解的复杂任务子任务列表并一次性处理所有子任务',
       inputSchema: {
         type: 'object',
         properties: {
@@ -65,6 +66,24 @@ export class AntVAssistantTool {
             type: 'string',
             description: '提取的用户意图，由 topic_intent_extractor 工具提供',
           },
+          subTasks: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                query: {
+                  type: 'string',
+                  description: '子任务查询',
+                },
+                topic: {
+                  type: 'string',
+                  description: '子任务主题',
+                },
+              },
+            },
+            description:
+              '已拆解的子任务列表（可选，如果提供则直接处理这些子任务而不是内部拆解）',
+          },
         },
         required: ['library', 'query', 'topic', 'intent'],
       },
@@ -81,14 +100,37 @@ export class AntVAssistantTool {
       this.validateArgs(args);
 
       const libraryId = this.context7Service.getLibraryId(args.library);
-      const documentation =
-        await this.context7Service.fetchLibraryDocumentation(
-          libraryId,
-          args.topic,
-          args.tokens || DEFAULT_CONFIG.context7.tokens.default,
-        );
 
-      const response = this.generateResponse(args, documentation);
+      let response: string;
+      let subTaskResults: any[] = [];
+      let isComplexTask = false;
+      let hasDocumentation = false;
+
+      // 如果提供了子任务，是复杂任务
+      if (args.subTasks && args.subTasks.length > 0) {
+        isComplexTask = true;
+        const { response: taskResponse, hasDocumentation: taskHasDoc } =
+          await this.handleComplexTaskWithDocCheck(
+            args,
+            libraryId,
+            args.subTasks,
+          );
+        response = taskResponse;
+        hasDocumentation = taskHasDoc;
+        subTaskResults = args.subTasks;
+      } else {
+        // 简单任务：直接查询
+        const documentation =
+          await this.context7Service.fetchLibraryDocumentation(
+            libraryId,
+            args.topic,
+            args.tokens || DEFAULT_CONFIG.context7.tokens.default,
+          );
+        hasDocumentation =
+          documentation !== null && documentation.trim() !== '';
+        response = this.generateResponse(args, documentation);
+      }
+
       const processingTime = Date.now() - startTime;
 
       return {
@@ -97,7 +139,7 @@ export class AntVAssistantTool {
           topics: args.topic.split(',').map((t) => t.trim()),
           intent: args.intent,
           library: args.library,
-          hasDocumentation: !!documentation,
+          hasDocumentation,
           processingTime,
         },
       };
@@ -128,6 +170,113 @@ export class AntVAssistantTool {
   }
 
   /**
+   * 处理复杂任务并检查文档获取状态
+   */
+  private async handleComplexTaskWithDocCheck(
+    args: AntVAssistantArgs,
+    libraryId: string,
+    subTasks: Array<{ query: string; topic: string; intent: string }>,
+  ): Promise<{ response: string; hasDocumentation: boolean }> {
+    const libraryConfig = getLibraryConfig(args.library);
+    const library = libraryConfig.name;
+
+    let response = `# ${library} 复杂任务解答\n\n`;
+    response += `**用户问题**: ${args.query}\n`;
+    response += `**任务类型**: 复杂任务（已拆解为 ${subTasks.length} 个子任务）\n`;
+    response += `\n---\n\n`;
+
+    // 限制每个子任务的token数量，避免返回内容过长
+    const tokenPerSubTask = Math.min(
+      Math.floor(
+        (args.tokens || DEFAULT_CONFIG.context7.tokens.default) /
+          subTasks.length,
+      ),
+      1000, // 每个子任务最多1000 tokens
+    );
+
+    const subTaskResults: Array<{ task: any; documentation: string | null }> =
+      [];
+
+    // 并行处理所有子任务
+    for (const [index, subTask] of subTasks.entries()) {
+      try {
+        this.logger.info(
+          `Processing subtask ${index + 1}/${subTasks.length}: ${subTask.topic}`,
+        );
+
+        const documentation =
+          await this.context7Service.fetchLibraryDocumentation(
+            libraryId,
+            subTask.topic,
+            tokenPerSubTask,
+          );
+
+        subTaskResults.push({ task: subTask, documentation });
+      } catch (error) {
+        this.logger.error(`Failed to process subtask ${index + 1}:`, error);
+        subTaskResults.push({ task: subTask, documentation: null });
+      }
+    }
+
+    // 检查是否有有效的文档
+    const hasValidDocumentation = subTaskResults.some(
+      (result) =>
+        result.documentation !== null && result.documentation.trim() !== '',
+    );
+
+    // 生成子任务结果
+    for (const [index, result] of subTaskResults.entries()) {
+      response += `## 📋 子任务 ${index + 1}\n\n`;
+      response += `**子任务查询**: ${result.task.query}\n`;
+      response += `**子任务主题**: ${result.task.topic}\n\n`;
+
+      if (result.documentation) {
+        response += `${result.documentation}\n\n`;
+      } else {
+        response += `⚠️ 未能获取到相关文档内容\n\n`;
+      }
+
+      response += `---\n\n`;
+    }
+
+    // 生成总结和建议
+    response += `## 🎯 任务整合建议\n\n`;
+    response += this.generateComplexTaskSummary(args, subTaskResults);
+    response += this.generateIntentSpecificGuidance(args.intent, library);
+
+    return { response, hasDocumentation: hasValidDocumentation };
+  }
+
+  /**
+   * 生成复杂任务总结
+   */
+  private generateComplexTaskSummary(
+    args: AntVAssistantArgs,
+    subTaskResults: Array<{ task: any; documentation: string | null }>,
+  ): string {
+    const successCount = subTaskResults.filter((r) => r.documentation).length;
+    const totalCount = subTaskResults.length;
+
+    let summary = `基于 ${successCount}/${totalCount} 个子任务的文档查询结果：\n\n`;
+
+    if (successCount === totalCount) {
+      summary += `✅ **完整解答**: 所有子任务都找到了相关文档`;
+    } else if (successCount > totalCount / 2) {
+      summary += `⚠️ **部分解答**: 大部分子任务找到了相关文档，建议：\n\n`;
+      summary += `1. 先实现有文档支持的功能\n`;
+      summary += `2. 对于缺失文档的部分，查阅官方资源或示例代码\n`;
+      summary += `3. 在实践中逐步完善解决方案\n\n`;
+    } else {
+      summary += `❌ **文档不足**: 多数子任务缺少文档支持，建议：\n\n`;
+      summary += `1. 重新细化查询关键词\n`;
+      summary += `2. 查阅官方文档和示例\n`;
+      summary += `3. 寻找社区资源和最佳实践\n\n`;
+    }
+
+    return summary;
+  }
+
+  /**
    * 验证输入参数
    */
   private validateArgs(args: AntVAssistantArgs): void {
@@ -145,7 +294,7 @@ export class AntVAssistantTool {
   }
 
   /**
-   * 生成回答内容
+   * 生成回答内容（简单任务）
    */
   private generateResponse(
     args: AntVAssistantArgs,
@@ -209,7 +358,6 @@ export class AntVAssistantTool {
 - 参考文档中的示例代码
 - 注意必需参数和可选参数的配置
 - 先实现基础功能，再添加高级特性
-- 添加适当的错误处理
 
 `;
   }

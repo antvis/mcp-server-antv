@@ -12,6 +12,11 @@ export interface AntVAssistantArgs {
   tokens?: number;
   topic: string;
   intent: string;
+  subTasks?: Array<{
+    query: string;
+    topic: string;
+    intent: string;
+  }>;
 }
 
 // 工具结果接口
