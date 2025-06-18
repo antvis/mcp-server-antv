@@ -6,7 +6,6 @@ import {
   getLibraryConfig,
   isValidLibrary,
   DEFAULT_CONFIG,
-  CODE_TEMPLATES,
 } from '../config/index.js';
 
 /**
@@ -354,16 +353,11 @@ export class AntVAssistantTool {
   }
 
   private generateImplementGuidance(library: string): string {
-    const template = CODE_TEMPLATES[library] || '';
-
     return `## 🛠️ 实现建议
 
 - 参考文档中的示例代码
 - 输出 JavaScript 代码，合并多个示例为一个最终方案，仅包含核心功能实现
-- 专注于图表配置和数据处理逻辑，无需关心 DOM 容器的创建和挂载
-## 📤 输出格式
-
-${template}
+- 专注于图表配置和数据处理逻辑，无需关心其他代码
 `;
   }
 
