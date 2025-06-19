@@ -11,7 +11,8 @@
     "clean": "rm -rf dist",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "lint": "prettier --check . && tsc --noEmit"
+    "lint": "prettier --check . && tsc --noEmit",
+    "inspector": "tsc && npx @modelcontextprotocol/inspector dist/index.js"
   },
   "keywords": [
     "mcp",
@@ -23,6 +24,7 @@
   "author": "AntV Community",
   "license": "MIT",
   "dependencies": {
+    "@modelcontextprotocol/inspector": "^0.14.0",
     "@modelcontextprotocol/sdk": "^0.4.0"
   },
   "devDependencies": {
@@ -36,5 +38,6 @@
   },
   "engines": {
     "node": ">=18.0.0"
-  }
+  },
+  "repository": "git@code.alipay.com:datavis/mcp-server-antv.git"
 }

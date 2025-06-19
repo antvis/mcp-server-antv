@@ -10,6 +10,24 @@ export const LIBRARY_MAPPING = {
   l7: { id: 'l7', name: 'L7' },
 } as const;
 
+export const LIBRARY_KEYWORDS_MAPPING = {
+  g2: [],
+  s2: [],
+  f2: `
+    - 文本/图片/点/标签/矩形标注 (textGuide、ImageGuide、PointGuide、TagGuide、RectGuide)
+    - 自定义标注/图例 (withGuide、withLegend)
+    - 时间轴 (Timeline)
+    - 坐标轴 (Axis)
+    - 组件 (Component)
+    - 提示信息/交互 (Tooltip)
+    - 饼图标签 (PieLabel)
+    - 象形柱图 (PictorialBar)
+  `,
+  g6: [],
+  x6: [],
+  l7: [],
+};
+
 export const DEFAULT_CONFIG = {
   // Context7 服务配置
   context7: {
