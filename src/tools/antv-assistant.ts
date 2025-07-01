@@ -37,7 +37,7 @@ export class AntVAssistantTool {
     return {
       name: 'antv_assistant',
       description:
-        '基于 AntV 文档的问答助手。可以处理简单查询，也可以接收预拆解的复杂任务子任务列表并一次性处理所有子任务',
+        '基于 AntV 文档的问答助手。可以处理简单查询，也可以接收预拆解的复杂任务子任务列表并一次性处理所有子任务。在对话的后续轮次中，如果栈和主题已经明确，任务简单，可以直接调用此工具进行修正或补充查询。',
       inputSchema: {
         type: 'object',
         properties: {
@@ -194,14 +194,12 @@ export class AntVAssistantTool {
       1000, // 每个子任务最多1000 tokens
     );
 
-    const subTaskResults: Array<{ task: any; documentation: string | null }> =
-      [];
-
-    // 并行处理所有子任务
-    for (const [index, subTask] of subTasks.entries()) {
+    const subTaskPromises = subTasks.map(async (subTask, index) => {
       try {
         this.logger.info(
-          `Processing subtask ${index + 1}/${subTasks.length}: ${subTask.topic}`,
+          `Processing subtask ${index + 1}/${subTasks.length}: ${
+            subTask.topic
+          }`,
         );
 
         const documentation =
@@ -211,12 +209,14 @@ export class AntVAssistantTool {
             tokenPerSubTask,
           );
 
-        subTaskResults.push({ task: subTask, documentation });
+        return { task: subTask, documentation };
       } catch (error) {
         this.logger.error(`Failed to process subtask ${index + 1}:`, error);
-        subTaskResults.push({ task: subTask, documentation: null });
+        return { task: subTask, documentation: null };
       }
-    }
+    });
+
+    const subTaskResults = await Promise.all(subTaskPromises);
 
     // 检查是否有有效的文档
     const hasValidDocumentation = subTaskResults.some(
