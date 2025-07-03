@@ -120,7 +120,7 @@ export class AntVAssistantTool {
         subTaskResults = args.subTasks;
       } else {
         // 简单任务：直接查询
-        const documentation =
+        const { documentation, error: docError } =
           await this.context7Service.fetchLibraryDocumentation(
             libraryId,
             args.topic,
@@ -128,7 +128,7 @@ export class AntVAssistantTool {
           );
         hasDocumentation =
           documentation !== null && documentation.trim() !== '';
-        response = this.generateResponse(args, documentation);
+        response = this.generateResponse(args, documentation, docError);
       }
 
       const processingTime = Date.now() - startTime;
@@ -202,17 +202,17 @@ export class AntVAssistantTool {
           }`,
         );
 
-        const documentation =
+        const { documentation, error: docError } =
           await this.context7Service.fetchLibraryDocumentation(
             libraryId,
             subTask.topic,
             tokenPerSubTask,
           );
 
-        return { task: subTask, documentation };
+        return { task: subTask, documentation, error: docError };
       } catch (error) {
         this.logger.error(`Failed to process subtask ${index + 1}:`, error);
-        return { task: subTask, documentation: null };
+        return { task: subTask, documentation: null, error: error instanceof Error ? error.message : String(error) };
       }
     });
 
@@ -233,7 +233,13 @@ export class AntVAssistantTool {
       if (result.documentation) {
         response += `${result.documentation}\n\n`;
       } else {
-        response += `⚠️ 未能获取到相关文档内容\n\n`;
+        response += `⚠️ 未能获取到相关文档内容`;
+        if (result.error) {
+          response += `\n错误信息: ${result.error}\n`;
+        } else {
+          response += `\n`;
+        }
+        response += `\n`;
       }
 
       response += `---\n\n`;
@@ -252,7 +258,7 @@ export class AntVAssistantTool {
    */
   private generateComplexTaskSummary(
     args: AntVAssistantArgs,
-    subTaskResults: Array<{ task: any; documentation: string | null }>,
+    subTaskResults: Array<{ task: any; documentation: string | null; error: string | undefined }>,
   ): string {
     const successCount = subTaskResults.filter((r) => r.documentation).length;
     const totalCount = subTaskResults.length;
@@ -299,6 +305,7 @@ export class AntVAssistantTool {
   private generateResponse(
     args: AntVAssistantArgs,
     context: string | null,
+    errorMsg?: string | undefined,
   ): string {
     const libraryConfig = getLibraryConfig(args.library);
     const library = libraryConfig.name;
@@ -313,10 +320,12 @@ export class AntVAssistantTool {
       response += this.generateIntentSpecificGuidance(args.intent, library);
     } else {
       response += `## ⚠️ 文档获取失败\n\n`;
+      response += `\n错误信息: ${errorMsg}\n`;
       response += `未能获取到相关文档内容。建议：\n`;
-      response += `1. 检查搜索主题是否准确\n`;
+      response += `1. 检查node版本是否为18及以上\n`;
       response += `2. 尝试使用更具体的技术术语\n`;
       response += `3. 查看 ${library} 官方文档\n`;
+
     }
 
     return response;
