@@ -1,14 +1,16 @@
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import type { AntVLibrary } from '../types/index.js';
 import { Logger, LogLevel } from '../utils/logger.js';
+import { packageDetector } from '../utils/package-detector.js';
 import {
   getLibraryConfig,
   isValidLibrary,
   LIBRARY_KEYWORDS_MAPPING,
 } from '../config/index.js';
+
 export interface TopicIntentExtractorArgs {
   query: string;
-  library: AntVLibrary;
+  library?: AntVLibrary;
   maxTopics?: number;
 }
 
@@ -85,19 +87,28 @@ When to use this tool:
 - 用户使用中文或英文描述的所有AntV相关技术需求
 
 Key features:
-- 自动识别AntV技术栈类型（G2图表/G6图分析/L7地理/X6编辑/F2移动/S2表格）
-- 智能提取技术主题关键词，支持中英文混合查询
-- 准确判断用户意图：学习了解/实现功能/解决问题
-- 自动检测任务复杂度并进行智能拆解
-- 为后续antv_assistant工具调用准备结构化信息
-- 支持从简单概念学习到复杂功能实现的全场景覆盖
-- 能够处理多步骤、多组件的复杂可视化需求
-- 无需用户显式指定AntV库类型，工具会智能推断
+- 🔍 智能项目依赖检测：自动扫描用户项目中已安装的AntV库，优先推荐已安装的技术栈
+- 🎯 自动识别AntV技术栈类型（G2图表/G6图分析/L7地理/X6编辑/F2移动/S2表格）
+- 📝 智能提取技术主题关键词，支持中英文混合查询
+- 🧠 准确判断用户意图：学习了解/实现功能/解决问题
+- 🔧 自动检测任务复杂度并进行智能拆解
+- 📋 为后续antv_assistant工具调用准备结构化信息
+- 🌐 支持从简单概念学习到复杂功能实现的全场景覆盖
+- 🤖 能够处理多步骤、多组件的复杂可视化需求
+- 💡 无需用户显式指定AntV库类型，工具会根据项目依赖和查询内容智能推断
 
 Parameters explained:
 - query: 用户的原始查询内容，支持中英文，可以是简单问题或复杂需求描述
-- library: AntV库名称(g2/g6/l7/x6/f2/s2)，如果不确定可以根据查询内容智能推断
+- library: AntV库名称(g2/g6/l7/x6/f2/s2)，可选参数！如果不指定，工具会自动检测项目依赖并智能推荐
 - maxTopics: 提取的主题关键词数量上限，默认5个，复杂任务可适当增加
+
+Smart Library Detection:
+- 📦 优先推荐项目中已安装的AntV库（如项目安装了F2但没有G2，询问折线图时会推荐F2）
+- 🔍 扫描package.json的dependencies和devDependencies
+- 📁 检测node_modules中的@antv/包
+- 🧭 根据查询内容在已安装库中选择最合适的
+- 🎲 如果没有安装任何AntV库，根据功能特征智能推荐
+- ⚡ 缓存检测结果，提高后续查询性能
 
 You should:
 1. 对任何提及AntV、可视化、图表、图形的查询都优先调用此工具
@@ -108,7 +119,8 @@ You should:
 6. 处理技术问题时要考虑用户的技术水平，适配不同层次的需求
 7. 对于复杂需求要进行合理拆解，确保每个子任务都有明确目标
 8. 为后续antv_assistant调用提供准确的结构化信息
-9. 支持迭代式需求完善，用户补充需求时也要调用此工具`,
+9. 支持迭代式需求完善，用户补充需求时也要调用此工具
+10. 充分利用项目依赖检测，避免推荐用户未安装的库`,
       inputSchema: {
         type: 'object',
         properties: {
@@ -119,7 +131,7 @@ You should:
           library: {
             type: 'string',
             enum: ['g2', 'g6', 'l7', 'x6', 'f2', 's2'],
-            description: 'AntV 库名称',
+            description: 'AntV 库名称（可选）- 如果不指定，工具会自动检测项目依赖并智能推荐',
           },
           maxTopics: {
             type: 'number',
@@ -129,7 +141,7 @@ You should:
             description: '最多提取的主题短语数量',
           },
         },
-        required: ['query', 'library'],
+        required: ['query'], // 只有query是必需的
       },
     };
   }
@@ -143,7 +155,11 @@ You should:
     try {
       this.validateArgs(args);
 
-      const extractionPrompt = this.generateExtractionPrompt(args);
+      // 智能推荐library
+      const recommendedLibrary = this.getRecommendedLibrary(args);
+      const finalArgs = { ...args, library: recommendedLibrary };
+
+      const extractionPrompt = this.generateExtractionPrompt(finalArgs);
       const maxTopics = args.maxTopics || 5;
 
       return {
@@ -156,7 +172,7 @@ You should:
         metadata: {
           topic: '', // 将由 LLM 填充
           intent: '', // 将由 LLM 填充
-          library: args.library,
+          library: recommendedLibrary,
           maxTopics,
           promptGenerated: true,
           next_tools: ['antv_assistant'],
@@ -166,6 +182,7 @@ You should:
       };
     } catch (error) {
       this.logger.error('Failed to generate extraction prompt:', error);
+      const fallbackLibrary = args.library || 'g2';
       return {
         content: [
           {
@@ -179,7 +196,7 @@ You should:
         metadata: {
           topic: '',
           intent: '',
-          library: args.library,
+          library: fallbackLibrary,
           maxTopics: args.maxTopics || 5,
           promptGenerated: false,
           next_tools: ['antv_assistant'],
@@ -191,13 +208,33 @@ You should:
   }
 
   /**
+   * 获取推荐的library
+   */
+  private getRecommendedLibrary(args: TopicIntentExtractorArgs): AntVLibrary {
+    // 如果用户指定了library，直接使用
+    if (args.library) {
+      return args.library;
+    }
+
+    // 使用依赖检测器推荐
+    const recommended = packageDetector.recommendLibrary(args.query);
+    if (recommended) {
+      this.logger.info(`Recommended library for query "${args.query}": ${recommended}`);
+      return recommended;
+    }
+
+    // fallback到G2
+    this.logger.warn('No suitable library found, falling back to G2');
+    return 'g2';
+  }
+
+  /**
    * 验证输入参数
    */
   private validateArgs(args: TopicIntentExtractorArgs): void {
     if (!args.query?.trim()) throw new Error('查询内容不能为空');
-    if (!args.library) throw new Error('必须指定 AntV 库名称');
 
-    if (!isValidLibrary(args.library)) {
+    if (args.library && !isValidLibrary(args.library)) {
       throw new Error(`不支持的库: ${args.library}`);
     }
   }
@@ -205,7 +242,7 @@ You should:
   /**
    * 生成提取任务的 Prompt
    */
-  private generateExtractionPrompt(args: TopicIntentExtractorArgs): string {
+  private generateExtractionPrompt(args: TopicIntentExtractorArgs & { library: AntVLibrary }): string {
     const maxTopics = args.maxTopics || 5;
     const libraryContext = getLibraryConfig(args.library);
 
