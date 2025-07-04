@@ -1,11 +1,11 @@
 /**
- * AntV MCP Server 类型定义
+ * AntV MCP Server Type Definitions
  */
 
-// AntV 库类型
+// AntV library types
 export type AntVLibrary = 'g2' | 'g6' | 'l7' | 'x6' | 'f2' | 's2';
 
-// 工具参数接口
+// Tool parameter interface
 export interface AntVAssistantArgs {
   library: AntVLibrary;
   query: string;
@@ -19,7 +19,7 @@ export interface AntVAssistantArgs {
   }>;
 }
 
-// 工具结果接口
+// Tool result interface
 export interface AntVAssistantResult {
   content: Array<{
     type: 'text';

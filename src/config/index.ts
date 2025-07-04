@@ -29,7 +29,7 @@ export const LIBRARY_KEYWORDS_MAPPING = {
 };
 
 export const DEFAULT_CONFIG = {
-  // Context7 服务配置
+  // Context7 service configuration
   context7: {
     baseUrl: 'https://context7.com/api',
     timeout: 30000,
@@ -40,7 +40,7 @@ export const DEFAULT_CONFIG = {
     },
   },
 
-  // 日志配置
+  // Logger configuration
   logger: {
     level: (process.env.LOG_LEVEL as keyof typeof LogLevel) || 'INFO',
   },

@@ -3,8 +3,8 @@
 /**
  * AntV MCP Server
  *
- * 为 AntV 可视化库提供文档查询和问答服务的 MCP 服务器
- * 支持主题提取、意图识别和智能文档检索
+ * MCP server providing documentation query and Q&A services for AntV visualization libraries
+ * Supports topic extraction, intent recognition, and intelligent document retrieval
  */
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
@@ -25,7 +25,7 @@ import type { AntVAssistantArgs } from './types/index.js';
 import type { TopicIntentExtractorArgs } from './tools/topic-intent-extractor.js';
 
 /**
- * 工具注册表
+ * Tool registry
  */
 interface ToolRegistry {
   [key: string]: {
@@ -35,7 +35,7 @@ interface ToolRegistry {
 }
 
 /**
- * AntV MCP 服务器
+ * AntV MCP Server
  */
 class AntVMcpServer {
   private readonly server: Server;
@@ -61,7 +61,7 @@ class AntVMcpServer {
   }
 
   /**
-   * 初始化工具注册表
+   * Initialize tool registry
    */
   private initializeTools(): ToolRegistry {
     const assistantTool = new AntVAssistantTool();
@@ -81,7 +81,7 @@ class AntVMcpServer {
   }
 
   /**
-   * 设置请求处理器
+   * Setup request handlers
    */
   private setupRequestHandlers(): void {
     this.server.setRequestHandler(ListToolsRequestSchema, async () => {
@@ -105,7 +105,7 @@ class AntVMcpServer {
   }
 
   /**
-   * 处理工具调用
+   * Handle tool calls
    */
   private async handleToolCall(
     toolName: string,
@@ -134,7 +134,7 @@ class AntVMcpServer {
   }
 
   /**
-   * 格式化工具执行结果
+   * Format tool execution result
    */
   private formatToolResult(result: any): CallToolResult {
     return {
@@ -145,7 +145,7 @@ class AntVMcpServer {
   }
 
   /**
-   * 格式化错误结果
+   * Format error result
    */
   private formatErrorResult(error: unknown): CallToolResult {
     const errorMessage =
@@ -167,7 +167,7 @@ class AntVMcpServer {
   }
 
   /**
-   * 启动服务器
+   * Start server
    */
   async run(): Promise<void> {
     try {
@@ -182,7 +182,7 @@ class AntVMcpServer {
   }
 
   /**
-   * 优雅关闭服务器
+   * Gracefully shutdown server
    */
   async shutdown(): Promise<void> {
     this.logger.info('Shutting down AntV MCP Server...');
@@ -197,10 +197,10 @@ class AntVMcpServer {
 }
 
 /**
- * 设置进程错误处理器
+ * Setup process error handlers
  */
 function setupProcessHandlers(server: AntVMcpServer): void {
-  // 未捕获的异常
+  // Uncaught exceptions
   process.on('uncaughtException', (error) => {
     console.error('Uncaught exception:', error);
     server.shutdown().finally(() => {
@@ -208,7 +208,7 @@ function setupProcessHandlers(server: AntVMcpServer): void {
     });
   });
 
-  // 未处理的 Promise 拒绝
+  // Unhandled promise rejections
   process.on('unhandledRejection', (reason, promise) => {
     console.error('Unhandled promise rejection:', promise, 'reason:', reason);
     server.shutdown().finally(() => {
@@ -218,27 +218,27 @@ function setupProcessHandlers(server: AntVMcpServer): void {
 }
 
 /**
- * 主函数
+ * Main function
  */
 async function main(): Promise<void> {
   const server = new AntVMcpServer();
 
-  // 设置进程错误处理
+  // Setup process error handling
   setupProcessHandlers(server);
 
   try {
-    // 启动服务器
+    // Start server
     await server.run();
   } catch (error) {
     console.error('Failed to start server:', error);
     process.exit(1);
   } finally {
-    // 确保服务器关闭
+    // Ensure server shutdown
     await server.shutdown();
   }
 }
 
-// 启动应用
+// Start application
 if (import.meta.url === `file://${process.argv[1]}`) {
   main().catch((error) => {
     console.error('Failed to start application:', error);

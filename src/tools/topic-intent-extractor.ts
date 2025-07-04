@@ -1,7 +1,7 @@
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import type { AntVLibrary } from '../types/index.js';
 import { Logger, LogLevel } from '../utils/logger.js';
-import { packageDetector } from '../utils/package-detector.js';
+import { recommendLibrary } from '../utils/package-detector.js';
 import {
   getLibraryConfig,
   isValidLibrary,
@@ -37,23 +37,24 @@ export interface TopicIntentExtractorResult {
 }
 
 /**
- * 用户意图枚举
+ * User intent enumeration
  */
 export const USER_INTENTS = {
-  LEARN: 'learn', // 学习了解
-  IMPLEMENT: 'implement', // 实现功能
-  SOLVE: 'solve', // 解决问题
+  LEARN: 'learn', // Learning and understanding
+  IMPLEMENT: 'implement', // Implementing functionality
+  SOLVE: 'solve', // Solving problems
 } as const;
 
 /**
- * AntV智能助手前置工具
+ * AntV Intelligent Assistant Preprocessing Tool
  *
- * 专门用于处理任何与AntV可视化库相关的用户查询。这个工具是AntV技术栈问题处理的第一步，
- * 负责智能识别、解析和结构化用户的可视化需求。支持自动识别AntV技术栈类型，智能提取
- * 技术主题关键词，准确判断用户意图，并为后续的antv_assistant工具调用准备结构化信息。
+ * Specifically designed to handle any user queries related to AntV visualization libraries. This tool is the first step
+ * in processing AntV technology stack issues, responsible for intelligently identifying, parsing, and structuring
+ * user visualization requirements. Supports automatic identification of AntV technology stack types, intelligent extraction
+ * of technical topic keywords, accurate judgment of user intent, and preparation of structured information for subsequent antv_assistant tool calls.
  *
- * 对任何涉及G2、G6、L7、X6、F2、S2或可视化相关的查询都应该优先调用此工具，
- * 支持从简单概念学习到复杂功能实现的全场景覆盖。
+ * For any queries involving G2, G6, L7, X6, F2, S2, or visualization-related topics, this tool should be called first,
+ * supporting full scenario coverage from simple concept learning to complex functionality implementation.
  */
 export class TopicIntentExtractorTool {
   private readonly logger: Logger;
@@ -66,96 +67,90 @@ export class TopicIntentExtractorTool {
   }
 
   /**
-   * 获取工具定义
+   * Get tool definition
    */
   getToolDefinition(): Tool {
     return {
       name: 'topic_intent_extractor',
-      description:
-        `AntV智能助手前置工具 - 专门用于处理任何与AntV可视化库相关的用户查询。
-这个工具是AntV技术栈问题处理的第一步，负责智能识别、解析和结构化用户的可视化需求。
+      description: `AntV Intelligent Assistant Preprocessing Tool - Specifically designed to handle any user queries related to AntV visualization libraries.
+This tool is the first step in processing AntV technology stack issues, responsible for intelligently identifying, parsing, and structuring user visualization requirements.
 
 When to use this tool:
-- 用户询问任何关于G2、G6、L7、X6、F2、S2等AntV库的问题
-- 涉及图表创建、数据可视化、图形分析、地理可视化的查询
-- 需要实现交互功能、样式配置、动画效果的需求
-- 关于图形编辑、网络分析、表格分析的技术问题
-- 用户提到任何AntV相关的组件、API、概念或术语
-- 需要解决AntV相关的报错、性能、兼容性问题
-- 学习AntV概念、寻求代码示例、实现指导的查询
-- 任何包含可视化、图表、图形、地图等关键词且可能与AntV相关的问题
-- 用户使用中文或英文描述的所有AntV相关技术需求
+- User queries about any G2, G6, L7, X6, F2, S2 or AntV libraries
+- Questions involving chart creation, data visualization, graph analysis, or geo-visualization
+- Requests for implementing interactive features, style configurations, or animation effects
+- Technical questions about graph editing, network analysis, or table analysis
+- Users mention any AntV-related components, APIs, concepts, or terminology
+- Need to solve AntV-related errors, performance, or compatibility issues
+- Learning AntV concepts, seeking code examples, or implementation guidance
+- Any queries containing visualization, charts, graphs, maps and possibly related to AntV
+- User technical requirements described in Chinese or English related to AntV
+- Handle any AntV-related questions during conversation flow
+
+When NOT to use:
+- Questions clearly unrelated to visualization or AntV
+- General programming questions not specific to AntV ecosystem
+- User is asking about non-AntV visualization libraries
 
 Key features:
-- 🔍 智能项目依赖检测：自动扫描用户项目中已安装的AntV库，优先推荐已安装的技术栈
-- 🎯 自动识别AntV技术栈类型（G2图表/G6图分析/L7地理/X6编辑/F2移动/S2表格）
-- 📝 智能提取技术主题关键词，支持中英文混合查询
-- 🧠 准确判断用户意图：学习了解/实现功能/解决问题
-- 🔧 自动检测任务复杂度并进行智能拆解
-- 📋 为后续antv_assistant工具调用准备结构化信息
-- 🌐 支持从简单概念学习到复杂功能实现的全场景覆盖
-- 🤖 能够处理多步骤、多组件的复杂可视化需求
-- 💡 无需用户显式指定AntV库类型，工具会根据项目依赖和查询内容智能推断
+-  Smart Project Dependency Detection: Automatically scans installed AntV libraries in user projects, prioritizes installed technology stacks
+-  Automatically identifies AntV technology stack types (G2 charts/G6 graph analysis/L7 geo/X6 editing/F2 mobile/S2 tables)
+-  Intelligently extracts technical topic keywords, supports mixed Chinese-English queries
+-  Accurately determines user intent: learning/implementing/solving problems
+-  Automatically detects task complexity and performs intelligent decomposition
+-  Prepares structured information for subsequent antv_assistant tool calls
+-  Supports full scenario coverage from simple concept learning to complex functionality implementation
+-  Capable of handling multi-step, multi-component complex visualization requirements
+-  No need for users to explicitly specify AntV library type, tool intelligently infers based on project dependencies and query content
 
 Parameters explained:
-- query: 用户的原始查询内容，支持中英文，可以是简单问题或复杂需求描述
-- library: AntV库名称(g2/g6/l7/x6/f2/s2)，可选参数！如果不指定，工具会自动检测项目依赖并智能推荐
-- maxTopics: 提取的主题关键词数量上限，默认5个，复杂任务可适当增加
+- query: User's original query content, supports Chinese and English, can be simple questions or complex requirement descriptions
+- library: AntV library name (g2/g6/l7/x6/f2/s2), optional parameter! If not specified, tool will automatically detect project dependencies and intelligently recommend
+- maxTopics: Maximum number of extracted topic keywords, default 5, can be increased appropriately for complex tasks
 
 Smart Library Detection:
-- 📦 优先推荐项目中已安装的AntV库（如项目安装了F2但没有G2，询问折线图时会推荐F2）
-- 🔍 扫描package.json的dependencies和devDependencies
-- 📁 检测node_modules中的@antv/包
-- 🧭 根据查询内容在已安装库中选择最合适的
-- 🎲 如果没有安装任何AntV库，根据功能特征智能推荐
-- ⚡ 缓存检测结果，提高后续查询性能
-
-You should:
-1. 对任何提及AntV、可视化、图表、图形的查询都优先调用此工具
-2. 不要等待用户明确说明要使用AntV，要主动识别相关需求
-3. 即使查询看似简单，也要通过此工具进行结构化处理
-4. 支持模糊查询，如"画个图表"、"数据可视化"等不明确需求
-5. 识别隐含的AntV相关需求，如"做个仪表板"、"网络关系图"等
-6. 处理技术问题时要考虑用户的技术水平，适配不同层次的需求
-7. 对于复杂需求要进行合理拆解，确保每个子任务都有明确目标
-8. 为后续antv_assistant调用提供准确的结构化信息
-9. 支持迭代式需求完善，用户补充需求时也要调用此工具
-10. 充分利用项目依赖检测，避免推荐用户未安装的库`,
+-  Prioritizes AntV libraries installed in the project (e.g., if project has F2 but not G2, will recommend F2 when asking about line charts)
+-  Scans package.json dependencies and devDependencies
+-  Detects @antv/ packages in node_modules
+-  Selects the most suitable among installed libraries based on query content
+-  If no AntV libraries are installed, intelligently recommends based on functional features
+- ⚡ Caches detection results to improve subsequent query performance`,
       inputSchema: {
         type: 'object',
         properties: {
           query: {
             type: 'string',
-            description: '用户查询内容',
+            description: 'User query content',
           },
           library: {
             type: 'string',
             enum: ['g2', 'g6', 'l7', 'x6', 'f2', 's2'],
-            description: 'AntV 库名称（可选）- 如果不指定，工具会自动检测项目依赖并智能推荐',
+            description:
+              'AntV library name (optional) - If not specified, tool will automatically detect project dependencies and intelligently recommend',
           },
           maxTopics: {
             type: 'number',
             minimum: 3,
             maximum: 8,
             default: 5,
-            description: '最多提取的主题短语数量',
+            description: 'Maximum number of extracted topic phrases',
           },
         },
-        required: ['query'], // 只有query是必需的
+        required: ['query'], // Only query is required
       },
     };
   }
 
   /**
-   * 执行工具
+   * Execute tool
    */
   async execute(
-    args: TopicIntentExtractorArgs
+    args: TopicIntentExtractorArgs,
   ): Promise<TopicIntentExtractorResult> {
     try {
       this.validateArgs(args);
 
-      // 智能推荐library
+      // Intelligently recommend library
       const recommendedLibrary = this.getRecommendedLibrary(args);
       const finalArgs = { ...args, library: recommendedLibrary };
 
@@ -170,14 +165,14 @@ You should:
           },
         ],
         metadata: {
-          topic: '', // 将由 LLM 填充
-          intent: '', // 将由 LLM 填充
+          topic: '', // Will be filled by LLM
+          intent: '', // Will be filled by LLM
           library: recommendedLibrary,
           maxTopics,
           promptGenerated: true,
           next_tools: ['antv_assistant'],
-          isComplexTask: false, // 将由 LLM 判断并填充
-          subTasks: [], // 如果是复杂任务，将由 LLM 填充子任务
+          isComplexTask: false, // Will be determined and filled by LLM
+          subTasks: [], // If complex task, will be filled with subtasks by LLM
         },
       };
     } catch (error) {
@@ -187,8 +182,8 @@ You should:
         content: [
           {
             type: 'text',
-            text: `❌ 生成提取任务失败: ${
-              error instanceof Error ? error.message : '未知错误'
+            text: `❌ Failed to generate extraction task: ${
+              error instanceof Error ? error.message : 'Unknown error'
             }`,
           },
         ],
@@ -208,134 +203,138 @@ You should:
   }
 
   /**
-   * 获取推荐的library
+   * Get recommended library
    */
   private getRecommendedLibrary(args: TopicIntentExtractorArgs): AntVLibrary {
-    // 如果用户指定了library，直接使用
+    // If user specified library, use it directly
     if (args.library) {
       return args.library;
     }
 
-    // 使用依赖检测器推荐
-    const recommended = packageDetector.recommendLibrary(args.query);
+    // Use dependency detector for recommendation
+    const recommended = recommendLibrary(args.query);
     if (recommended) {
-      this.logger.info(`Recommended library for query "${args.query}": ${recommended}`);
+      this.logger.info(
+        `Recommended library for query "${args.query}": ${recommended}`,
+      );
       return recommended;
     }
 
-    // fallback到G2
+    // Fallback to G2
     this.logger.warn('No suitable library found, falling back to G2');
     return 'g2';
   }
 
   /**
-   * 验证输入参数
+   * Validate input arguments
    */
   private validateArgs(args: TopicIntentExtractorArgs): void {
-    if (!args.query?.trim()) throw new Error('查询内容不能为空');
+    if (!args.query?.trim()) throw new Error('Query content cannot be empty');
 
     if (args.library && !isValidLibrary(args.library)) {
-      throw new Error(`不支持的库: ${args.library}`);
+      throw new Error(`Unsupported library: ${args.library}`);
     }
   }
 
   /**
-   * 生成提取任务的 Prompt
+   * Generate extraction task prompt
    */
-  private generateExtractionPrompt(args: TopicIntentExtractorArgs & { library: AntVLibrary }): string {
+  private generateExtractionPrompt(
+    args: TopicIntentExtractorArgs & { library: AntVLibrary },
+  ): string {
     const maxTopics = args.maxTopics || 5;
     const libraryContext = getLibraryConfig(args.library);
 
-    return `# 🔍 AntV 主题和意图提取任务
+    return `# AntV Topic and Intent Extraction Task
 
-## 📋 任务目标
-从用户查询中提取最相关的技术主题短语和用户意图，用于 ${
+## Task Objective
+Extract the most relevant technical topic phrases and user intent from user queries for ${
       libraryContext.name
-    } 文档检索。
+    } documentation retrieval.
 
-## 🎯 用户查询
+##  User Query
 \`\`\`
 ${args.query}
 \`\`\`
 
-## 📝 提取规则
+##  Extraction Rules
 
-### 1. 复杂任务检测
-判断用户查询是否为复杂任务。复杂任务的特征：
-- 包含多个技术概念或功能点
-- 需要多个步骤才能完成
-- 涉及多种图表类型或多种功能
-- 有明确的流程或组合需求
+### 1. Complex Task Detection
+Determine whether the user query is a complex task. Characteristics of complex tasks:
+- Contains multiple technical concepts or functional points
+- Requires multiple steps to complete
+- Involves multiple chart types or multiple functions
+- Has clear workflow or combination requirements
 
-### 2. 主题短语提取
-- **来源限制**: 只从用户查询内容中提取，不要添加查询中没有的概念
-- **数量要求**: 最多 ${maxTopics} 个，可以少于这个数量
-- **格式要求**:
-  - 提取有意义的短语组合（1-4个词）
-  - 避免单个词汇或过长的句子
-  - 保证词汇间差异性，避免重复
-  - 翻译成英文，保持技术准确性
--**组件、概念、术语**:${
-    LIBRARY_KEYWORDS_MAPPING[libraryContext.id]
-  }
-- **优先级**:
-  1. ${libraryContext.name} 特有的组件概念和API
-  2. 图表类型和可视化概念
-  3. 交互、动画效果、数据处理和配置
+### 2. Topic Phrase Extraction
+- **Source Limitation**: Extract only from user query content, do not add concepts not present in the query
+- **Quantity Requirement**: Maximum ${maxTopics} items, can be fewer than this number
+- **Format Requirements**:
+  - Extract meaningful phrase combinations (1-4 words)
+  - Avoid single words or overly long sentences
+  - Ensure diversity between terms, avoid repetition
+  - Translate to English, maintain technical accuracy
+- **Components, Concepts, Terminology**: ${
+      LIBRARY_KEYWORDS_MAPPING[libraryContext.id]
+    }
+- **Priority**:
+  1. ${libraryContext.name} specific component concepts and APIs
+  2. Chart types and visualization concepts
+  3. Interaction, animation effects, data processing and configuration
 
-### 3. 用户意图识别
-根据查询的语气和内容，选择最匹配的意图：
+### 3. User Intent Recognition
+Based on the tone and content of the query, select the most matching intent:
 
-- **learn**: 学习了解（如：什么是、如何理解、介绍一下）
-- **implement**: 实现功能（如：如何创建、怎么实现、代码示例）
-- **solve**: 解决问题（如：报错、不工作、修复问题）
+- **learn**: Learning and understanding (e.g., what is, how to understand, introduce)
+- **implement**: Implementing functionality (e.g., how to create, how to implement, code examples)
+- **solve**: Solving problems (e.g., errors, not working, fixing issues)
 
-### 4. 复杂任务拆解
-如果判断为复杂任务，需要将其拆解成2-4个子任务，每个子任务应该：
-- 专注于一个具体的技术点或功能
-- 能独立通过文档查询获得答案
-- 按逻辑顺序排列（基础 → 高级）
-- 子任务的 topic 必须清晰、简明，并严格遵循"### 2. 主题短语提取"的格式要求（短语组合、英文、技术准确性等),个数在1-2个之内
+### 4. Complex Task Decomposition
+If determined to be a complex task, it needs to be decomposed into 2-4 subtasks, each subtask should:
+- Focus on a specific technical point or functionality
+- Be able to independently obtain answers through documentation queries
+- Be arranged in logical order (basic → advanced)
+- Subtask topics must be clear, concise, and strictly follow the format requirements of "### 2. Topic Phrase Extraction" (phrase combinations, English, technical accuracy, etc.), with 1-2 items
 
-**注意**: 对于复杂任务，将提供拆解后的子任务列表给antv_assistant工具一次性处理，而不是多次调用工具。
+**Note**: For complex tasks, provide the decomposed subtask list to the antv_assistant tool for one-time processing, rather than multiple tool calls.
 
-## 📤 输出格式
+##  Output Format
 
-### 简单任务输出格式：
+### Simple Task Output Format:
 \`\`\`json
 {
-  "topics": "实际提取的主题1, 主题2, 主题3",
+  "topics": "actually extracted topic1, topic2, topic3",
   "intent": "learn|implement|solve",
   "isComplexTask": false
 }
 \`\`\`
 
-### 复杂任务输出格式：
+### Complex Task Output Format:
 \`\`\`json
 {
-  "topics": "所有相关主题的汇总",
-  "intent": "总体意图",
+  "topics": "summary of all related topics",
+  "intent": "overall intent",
   "isComplexTask": true,
   "subTasks": [
     {
-      "query": "子任务1的具体问题",
-      "topic": "子任务1的主题",
-      "intent": "子任务1的意图"
+      "query": "specific question for subtask 1",
+      "topic": "topic for subtask 1",
+      "intent": "intent for subtask 1"
     },
     {
-      "query": "子任务2的具体问题",
-      "topic": "子任务2的主题",
-      "intent": "子任务2的意图"
+      "query": "specific question for subtask 2",
+      "topic": "topic for subtask 2",
+      "intent": "intent for subtask 2"
     }
   ]
 }
 \`\`\`
 
-## 💡 提取示例
+##  Extraction Examples
 
-**示例1 - 简单任务**
-查询: "G2是什么？"
-输出:
+**Example 1 - Simple Task**
+Query: "What is G2?"
+Output:
 \`\`\`json
 {
   "topics": "G2 introduction",
@@ -344,9 +343,9 @@ ${args.query}
 }
 \`\`\`
 
-**示例2 - 复杂任务**
-查询: "如何在G2中创建一个带有动画效果的柱状图，并添加鼠标悬停交互？"
-输出:
+**Example 2 - Complex Task**
+Query: "How to create an animated bar chart with hover interaction in G2?"
+Output:
 \`\`\`json
 {
   "topics": "animated bar chart, chart animation, hover interaction, mouse events",
@@ -354,17 +353,17 @@ ${args.query}
   "isComplexTask": true,
   "subTasks": [
     {
-      "query": "如何在G2中创建基础的柱状图？",
+      "query": "How to create a basic bar chart in G2?",
       "topic": "bar chart, chart creation",
       "intent": "implement"
     },
     {
-      "query": "如何为G2图表添加动画效果？",
+      "query": "How to add animation effects to G2 charts?",
       "topic": "chart animation, animation effects",
       "intent": "implement"
     },
     {
-      "query": "如何为G2图表添加鼠标悬停交互？",
+      "query": "How to add hover interaction to G2 charts?",
       "topic": "hover interaction, mouse events",
       "intent": "implement"
     }
@@ -372,6 +371,12 @@ ${args.query}
 }
 \`\`\`
 
-现在请开始提取：`;
+Now please begin extraction:
+
+## ⚠️ Important Notice
+**After extraction is complete, you must immediately call the \`antv_assistant\` tool to handle the user's actual technical requirements.**
+- Use the extracted library, topic, intent parameters
+- If it's a complex task, pass the subTasks parameter
+- Do not skip this step and answer user questions directly`;
   }
 }
