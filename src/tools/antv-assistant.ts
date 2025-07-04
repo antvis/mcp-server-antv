@@ -165,7 +165,7 @@ Parameters explained:
         subTaskResults = args.subTasks;
       } else {
         // Simple task: direct query
-        const documentation =
+        const { documentation, error: docError } =
           await this.context7Service.fetchLibraryDocumentation(
             libraryId,
             args.topic,
@@ -173,7 +173,7 @@ Parameters explained:
           );
         hasDocumentation =
           documentation !== null && documentation.trim() !== '';
-        response = this.generateResponse(args, documentation);
+        response = this.generateResponse(args, documentation, docError);
       }
 
       const processingTime = Date.now() - startTime;
@@ -247,17 +247,21 @@ Parameters explained:
           }`,
         );
 
-        const documentation =
+        const { documentation, error: docError } =
           await this.context7Service.fetchLibraryDocumentation(
             libraryId,
             subTask.topic,
             tokenPerSubTask,
           );
 
-        return { task: subTask, documentation };
+        return { task: subTask, documentation, error: docError };
       } catch (error) {
         this.logger.error(`Failed to process subtask ${index + 1}:`, error);
-        return { task: subTask, documentation: null };
+        return {
+          task: subTask,
+          documentation: null,
+          error: error instanceof Error ? error.message : String(error),
+        };
       }
     });
 
@@ -279,6 +283,12 @@ Parameters explained:
         response += `${result.documentation}\n\n`;
       } else {
         response += `⚠️ Could not retrieve relevant documentation content\n\n`;
+        if (result.error) {
+          response += `\nError: ${result.error}\n`;
+        } else {
+          response += `\n`;
+        }
+        response += `\n`;
       }
 
       response += `---\n\n`;
@@ -300,7 +310,11 @@ Parameters explained:
    */
   private generateComplexTaskSummary(
     args: AntVAssistantArgs,
-    subTaskResults: Array<{ task: any; documentation: string | null }>,
+    subTaskResults: Array<{
+      task: any;
+      documentation: string | null;
+      error: string | undefined;
+    }>,
   ): string {
     const successCount = subTaskResults.filter((r) => r.documentation).length;
     const totalCount = subTaskResults.length;
@@ -347,6 +361,7 @@ Parameters explained:
   private generateResponse(
     args: AntVAssistantArgs,
     context: string | null,
+    errorMsg?: string | undefined,
   ): string {
     const libraryConfig = getLibraryConfig(args.library);
     const library = libraryConfig.name;
@@ -361,6 +376,7 @@ Parameters explained:
       response += this.generateIntentSpecificGuidance(args.intent, library);
     } else {
       response += `## ⚠️ Documentation Retrieval Failed\n\n`;
+      response += `\nError: ${errorMsg}\n`;
       response += `Could not retrieve relevant documentation content. Recommendations:\n`;
       response += `1. Check if search topics are accurate\n`;
       response += `2. Try using more specific technical terms\n`;

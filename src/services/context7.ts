@@ -35,7 +35,7 @@ export class Context7Service {
     libraryId: string,
     topic: string,
     tokens?: number,
-  ): Promise<string | null> {
+  ): Promise<{ documentation: string | null; error?: string }> {
     try {
       const url = this.getContext7Url(libraryId, topic, tokens);
       const response = await this.makeContext7Request(url);
@@ -44,13 +44,13 @@ export class Context7Service {
         this.logger.info(
           `Documentation fetched successfully, length: ${response.length} chars`,
         );
-        return response;
+        return { documentation: response };
       }
 
-      return null;
+      return { documentation: null };
     } catch (error) {
       this.logger.error('Failed to fetch documentation:', error);
-      return null;
+      return { documentation: null, error: error instanceof Error ? error.message : String(error) };
     }
   }
 
