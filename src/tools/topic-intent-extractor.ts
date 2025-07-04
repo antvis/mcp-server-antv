@@ -268,15 +268,16 @@ Determine whether the user query is a complex task. Characteristics of complex t
 
 ### 2. Topic Phrase Extraction
 - **Source Limitation**: Extract only from user query content, do not add concepts not present in the query
+- **rules**:${
+    LIBRARY_KEYWORDS_MAPPING[libraryContext.id]
+  }
+- 翻译和提取时，务必优先使用上方列出的官方组件英文名称，保持与官方文档一致，避免自创或误译,保持技术准确性
 - **Quantity Requirement**: Maximum ${maxTopics} items, can be fewer than this number
 - **Format Requirements**:
   - Extract meaningful phrase combinations (1-4 words)
   - Avoid single words or overly long sentences
   - Ensure diversity between terms, avoid repetition
   - Translate to English, maintain technical accuracy
-- **Components, Concepts, Terminology**: ${
-      LIBRARY_KEYWORDS_MAPPING[libraryContext.id]
-    }
 - **Priority**:
   1. ${libraryContext.name} specific component concepts and APIs
   2. Chart types and visualization concepts
