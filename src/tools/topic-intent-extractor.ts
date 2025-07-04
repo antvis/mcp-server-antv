@@ -1,11 +1,11 @@
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import type { AntVLibrary } from '../types/index.js';
 import { Logger, LogLevel } from '../utils/logger.js';
-import { recommendLibrary } from '../utils/package-detector.js';
 import {
   getLibraryConfig,
   isValidLibrary,
   LIBRARY_KEYWORDS_MAPPING,
+  LIBRARY_MAPPING,
 } from '../config/index.js';
 
 export interface TopicIntentExtractorArgs {
@@ -101,7 +101,6 @@ Key features:
 -  Prepares structured information for subsequent antv_assistant tool calls
 -  Supports full scenario coverage from simple concept learning to complex functionality implementation
 -  Capable of handling multi-step, multi-component complex visualization requirements
--  No need for users to explicitly specify AntV library type, tool intelligently infers based on project dependencies and query content
 
 Parameters explained:
 - query: User's original query content, supports Chinese and English, can be simple questions or complex requirement descriptions
@@ -136,7 +135,7 @@ Smart Library Detection:
             description: 'Maximum number of extracted topic phrases',
           },
         },
-        required: ['query'], // Only query is required
+        required: ['query'],
       },
     };
   }
@@ -150,11 +149,7 @@ Smart Library Detection:
     try {
       this.validateArgs(args);
 
-      // Intelligently recommend library
-      const recommendedLibrary = this.getRecommendedLibrary(args);
-      const finalArgs = { ...args, library: recommendedLibrary };
-
-      const extractionPrompt = this.generateExtractionPrompt(finalArgs);
+      const extractionPrompt = this.generateExtractionPrompt(args);
       const maxTopics = args.maxTopics || 5;
 
       return {
@@ -167,7 +162,7 @@ Smart Library Detection:
         metadata: {
           topic: '', // Will be filled by LLM
           intent: '', // Will be filled by LLM
-          library: recommendedLibrary,
+          library: args.library || 'g2',
           maxTopics,
           promptGenerated: true,
           next_tools: ['antv_assistant'],
@@ -203,29 +198,6 @@ Smart Library Detection:
   }
 
   /**
-   * Get recommended library
-   */
-  private getRecommendedLibrary(args: TopicIntentExtractorArgs): AntVLibrary {
-    // If user specified library, use it directly
-    if (args.library) {
-      return args.library;
-    }
-
-    // Use dependency detector for recommendation
-    const recommended = recommendLibrary(args.query);
-    if (recommended) {
-      this.logger.info(
-        `Recommended library for query "${args.query}": ${recommended}`,
-      );
-      return recommended;
-    }
-
-    // Fallback to G2
-    this.logger.warn('No suitable library found, falling back to G2');
-    return 'g2';
-  }
-
-  /**
    * Validate input arguments
    */
   private validateArgs(args: TopicIntentExtractorArgs): void {
@@ -239,37 +211,163 @@ Smart Library Detection:
   /**
    * Generate extraction task prompt
    */
-  private generateExtractionPrompt(
-    args: TopicIntentExtractorArgs & { library: AntVLibrary },
-  ): string {
+  private generateExtractionPrompt(args: TopicIntentExtractorArgs): string {
     const maxTopics = args.maxTopics || 5;
-    const libraryContext = getLibraryConfig(args.library);
+    const libraryContext = args.library
+      ? getLibraryConfig(args.library)
+      : undefined;
 
-    return `# AntV Topic and Intent Extraction Task
+    return this.generateUnifiedPrompt(args.query, maxTopics, libraryContext);
+  }
+
+  /**
+   * Generate unified prompt for both specific library and dynamic detection scenarios
+   */
+  private generateUnifiedPrompt(
+    query: string,
+    maxTopics: number,
+    libraryContext?: { id: AntVLibrary; name: string },
+  ): string {
+    const isLibrarySpecified = !!libraryContext;
+    const allLibraries = Object.values(LIBRARY_MAPPING);
+
+    // Phase 1: Library Determination Section
+    const libraryDeterminationSection = isLibrarySpecified
+      ? this.generateLibrarySpecifiedSection(libraryContext)
+      : this.generateLibraryDetectionSection(allLibraries);
+
+    // Phase 2: Unified Topic Extraction and Intent Recognition
+    const extractionRulesSection =
+      this.generateExtractionRulesSection(maxTopics, libraryContext);
+
+    // Output format and examples
+    const outputFormatSection = this.generateOutputFormatSection();
+    const examplesSection = this.generateExamplesSection();
+
+    return `# AntV ${isLibrarySpecified ? 'Topic and Intent Extraction' : 'Smart Library Detection and Topic Extraction'} Task
 
 ## Task Objective
-Extract the most relevant technical topic phrases and user intent from user queries for ${
-      libraryContext.name
-    } documentation retrieval.
+${
+  isLibrarySpecified
+    ? `Extract the most relevant technical topic phrases and user intent from user queries for ${libraryContext.name} documentation retrieval.`
+    : `1. **First**: Detect and recommend the most suitable AntV library based on query intent and installed dependencies
+2. **Second**: Extract relevant technical topics and user intent for the determined library`
+}
 
 ##  User Query
 \`\`\`
-${args.query}
+${query}
 \`\`\`
 
-##  Extraction Rules
+${libraryDeterminationSection}
 
-### 1. Complex Task Detection
+${extractionRulesSection}
+
+##  Output Format
+
+${outputFormatSection}
+
+##  Examples
+
+${examplesSection}
+
+Now please begin ${isLibrarySpecified ? 'extraction' : 'the detection and extraction process'}:
+
+## ⚠️ Important Notice
+**After completing this task, you must immediately call the \`antv_assistant\` tool to handle the user's actual technical requirements using the extracted parameters.**
+${
+  isLibrarySpecified
+    ? `- Use the extracted library, topic, intent parameters
+- If it's a complex task, pass the subTasks parameter
+- Do not skip this step and answer user questions directly`
+    : ''
+}`;
+  }
+
+  /**
+   * Generate library specified section
+   */
+  private generateLibrarySpecifiedSection(libraryContext: {
+    id: AntVLibrary;
+    name: string;
+  }): string {
+    return `## Library Context
+**Target Library**: ${libraryContext.name} (${libraryContext.id})
+**Components and Terminology**: ${LIBRARY_KEYWORDS_MAPPING[libraryContext.id]}`;
+  }
+
+  /**
+   * Generate library detection section for dynamic recommendation
+   */
+  private generateLibraryDetectionSection(
+    allLibraries: Array<{ id: AntVLibrary; name: string }>,
+  ): string {
+    return `## Phase 1: Library Detection and Recommendation
+
+**Your first task is to determine the most suitable AntV library for this query.**
+
+### Step 1.1: Project Dependency Scan
+Scan the user's current project for installed AntV dependencies:
+1. **Check package.json**: Look for AntV-related dependencies in both \`dependencies\` and \`devDependencies\`
+2. **Look for patterns**:
+   - \`@antv/g2\` → G2 (Statistical Charts)
+   - \`@antv/g6\` → G6 (Graph Analysis)
+   - \`@antv/l7\` → L7 (Geospatial Visualization)
+   - \`@antv/x6\` → X6 (Graph Editing)
+   - \`@antv/f2\` → F2 (Mobile Charts)
+   - \`@antv/s2\` → S2 (Table Analysis)
+
+### Step 1.2: Smart Library Recommendation
+Based on query content and detected dependencies, recommend the most suitable library:
+
+**Library Selection Rules (Priority Order):**
+1. **Query Intent Match**: Select library that best matches the technical requirements:
+   ${allLibraries
+     .map(
+       (lib: { id: AntVLibrary; name: string }) =>
+         `- **${lib.name} (${lib.id})**: ${this.getLibraryDescription(lib.id)}`,
+     )
+     .join('\n   ')}
+
+2. **Installed Dependency Priority**: If multiple libraries match the intent, prioritize installed ones
+3. **Best Practice Guidance**: Consider the most commonly used library for the specific use case
+
+**Output the recommended library and reason before proceeding to Phase 2.**`;
+  }
+
+  /**
+   * Generate unified extraction rules section
+   */
+  private generateExtractionRulesSection(
+    maxTopics: number,
+    libraryContext?: { id: AntVLibrary; name: string },
+  ): string {
+    // Dynamic values based on whether library is specified or needs to be determined
+    const libraryTerminology = libraryContext
+      ? LIBRARY_KEYWORDS_MAPPING[libraryContext.id]
+      : 'Use the terminology and components specific to the determined target library';
+
+    const librarySpecificPriority = libraryContext
+      ? `${libraryContext.name} specific component concepts and APIs`
+      : 'Target library specific component concepts and APIs';
+
+    return `## Phase 2: Topic Extraction and Intent Recognition
+
+Once you have the target library (either specified or determined), proceed with:
+
+### 2.1: Complex Task Detection
 Determine whether the user query is a complex task. Characteristics of complex tasks:
 - Contains multiple technical concepts or functional points
 - Requires multiple steps to complete
 - Involves multiple chart types or multiple functions
 - Has clear workflow or combination requirements
 
-### 2. Topic Phrase Extraction
+### 2.2: Topic Phrase Extraction
 - **Source Limitation**: Extract only from user query content, do not add concepts not present in the query
 - **rules**:${
-    LIBRARY_KEYWORDS_MAPPING[libraryContext.id]
+    libraryContext
+      ? LIBRARY_KEYWORDS_MAPPING[libraryContext.id]
+      : 'Use the terminology and components specific to the determined target library'
   }
 - 翻译和提取时，务必优先使用上方列出的官方组件英文名称，保持与官方文档一致，避免自创或误译,保持技术准确性
 - **Quantity Requirement**: Maximum ${maxTopics} items, can be fewer than this number
@@ -278,34 +376,38 @@ Determine whether the user query is a complex task. Characteristics of complex t
   - Avoid single words or overly long sentences
   - Ensure diversity between terms, avoid repetition
   - Translate to English, maintain technical accuracy
+- **Components, Concepts, Terminology**: ${libraryTerminology}
 - **Priority**:
-  1. ${libraryContext.name} specific component concepts and APIs
+  1. ${librarySpecificPriority}
   2. Chart types and visualization concepts
   3. Interaction, animation effects, data processing and configuration
 
-### 3. User Intent Recognition
+### 2.3: User Intent Recognition
 Based on the tone and content of the query, select the most matching intent:
-
 - **learn**: Learning and understanding (e.g., what is, how to understand, introduce)
 - **implement**: Implementing functionality (e.g., how to create, how to implement, code examples)
 - **solve**: Solving problems (e.g., errors, not working, fixing issues)
 
-### 4. Complex Task Decomposition
-If determined to be a complex task, it needs to be decomposed into 2-4 subtasks, each subtask should:
+### 2.4: Complex Task Decomposition
+If determined to be a complex task, decompose into 2-4 subtasks, each subtask should:
 - Focus on a specific technical point or functionality
 - Be able to independently obtain answers through documentation queries
 - Be arranged in logical order (basic → advanced)
-- Subtask topics must be clear, concise, and strictly follow the format requirements of "### 2. Topic Phrase Extraction" (phrase combinations, English, technical accuracy, etc.), with 1-2 items
+- Subtask topics must be clear, concise, and follow the format requirements above
 
-**Note**: For complex tasks, provide the decomposed subtask list to the antv_assistant tool for one-time processing, rather than multiple tool calls.
+**Note**: For complex tasks, provide the decomposed subtask list to the antv_assistant tool for one-time processing.`;
+  }
 
-##  Output Format
-
-### Simple Task Output Format:
+  /**
+   * Generate output format section based on library specification
+   */
+  private generateOutputFormatSection(): string {
+    return `### Simple Task Output Format:
 \`\`\`json
 {
   "topics": "actually extracted topic1, topic2, topic3",
   "intent": "learn|implement|solve",
+  "library": "the target library (either specified or determined)",
   "isComplexTask": false
 }
 \`\`\`
@@ -315,6 +417,7 @@ If determined to be a complex task, it needs to be decomposed into 2-4 subtasks,
 {
   "topics": "summary of all related topics",
   "intent": "overall intent",
+  "library": "the target library (either specified or determined)",
   "isComplexTask": true,
   "subTasks": [
     {
@@ -329,17 +432,21 @@ If determined to be a complex task, it needs to be decomposed into 2-4 subtasks,
     }
   ]
 }
-\`\`\`
+\`\`\``;
+  }
 
-##  Extraction Examples
-
-**Example 1 - Simple Task**
+  /**
+   * Generate examples section based on library specification
+   */
+  private generateExamplesSection(): string {
+    return `**Example 1 - Simple Task**
 Query: "What is G2?"
 Output:
 \`\`\`json
 {
   "topics": "G2 introduction",
   "intent": "learn",
+  "library": "g2",
   "isComplexTask": false
 }
 \`\`\`
@@ -351,6 +458,7 @@ Output:
 {
   "topics": "animated bar chart, chart animation, hover interaction, mouse events",
   "intent": "implement",
+  "library": "g2",
   "isComplexTask": true,
   "subTasks": [
     {
@@ -370,14 +478,21 @@ Output:
     }
   ]
 }
-\`\`\`
+\`\`\``;
+  }
 
-Now please begin extraction:
-
-## ⚠️ Important Notice
-**After extraction is complete, you must immediately call the \`antv_assistant\` tool to handle the user's actual technical requirements.**
-- Use the extracted library, topic, intent parameters
-- If it's a complex task, pass the subTasks parameter
-- Do not skip this step and answer user questions directly`;
+  /**
+   * Get library description for recommendation
+   */
+  private getLibraryDescription(libraryId: AntVLibrary): string {
+    const descriptions = {
+      g2: 'Statistical charts, data visualization, business intelligence charts',
+      g6: 'Graph analysis, network diagrams, node-link relationships',
+      l7: 'Geospatial visualization, maps, geographic data analysis',
+      x6: 'Graph editing, flowcharts, diagram creation tools',
+      f2: 'Mobile-optimized charts, lightweight visualization',
+      s2: 'Table analysis, spreadsheet-like interactions, data grids',
+    };
+    return descriptions[libraryId] || 'AntV visualization library';
   }
 }
