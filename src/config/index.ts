@@ -14,7 +14,8 @@ export const LIBRARY_KEYWORDS_MAPPING = {
   g2: [],
   s2: [],
   f2: `
-    - 文本/图片/点/标签/矩形标注 (textGuide、ImageGuide、PointGuide、TagGuide、RectGuide)
+  <components>
+    - 文本/图片/点/标签/矩形标注 (TextGuide、ImageGuide、PointGuide、TagGuide、RectGuide)
     - 自定义标注/图例 (withGuide、withLegend)
     - 时间轴 (Timeline)
     - 坐标轴 (Axis)
@@ -22,6 +23,11 @@ export const LIBRARY_KEYWORDS_MAPPING = {
     - 提示信息/交互 (Tooltip)
     - 饼图标签 (PieLabel)
     - 象形柱图 (PictorialBar)
+  <components>
+  <convention>
+    - JSX 语法
+    - Guides, Legend, Timeline, Axis 组件必须在 Chart 组件内使用
+  </convention>
   `,
   g6: [],
   x6: [],
@@ -29,18 +35,18 @@ export const LIBRARY_KEYWORDS_MAPPING = {
 };
 
 export const DEFAULT_CONFIG = {
-  // Context7 服务配置
+  // Context7 service configuration
   context7: {
     baseUrl: 'https://context7.com/api',
     timeout: 30000,
     tokens: {
-      default: 5000,
+      default: 1000,
       max: 20000,
       min: 1000,
     },
   },
 
-  // 日志配置
+  // Logger configuration
   logger: {
     level: (process.env.LOG_LEVEL as keyof typeof LogLevel) || 'INFO',
   },

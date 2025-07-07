@@ -1,5 +1,5 @@
 /**
- * Context7 服务，用于获取 AntV 最新文档上下文
+ * Context7 service, used to get the latest documentation context for AntV
  */
 
 import type { AntVLibrary } from '../types/index.js';
@@ -22,14 +22,14 @@ export class Context7Service {
   }
 
   /**
-   * 获取 AntV 组织下对应的 Context7 库 ID
+   * Get the Context7 library ID corresponding to the AntV organization
    */
   public getLibraryId(library: AntVLibrary): string {
     return `/antvis/${library}`;
   }
 
   /**
-   * 获取指定库与主题关联的文档上下文
+   * Get the documentation context associated with the specified library and topic
    */
   public async fetchLibraryDocumentation(
     libraryId: string,
@@ -55,7 +55,7 @@ export class Context7Service {
   }
 
   /**
-   * 构建 Context7 API 请求 URL
+   * Build Context7 API request URL
    */
   private getContext7Url(
     libraryId: string,
@@ -77,7 +77,7 @@ export class Context7Service {
   }
 
   /**
-   * 发送 Context7 API 请求
+   * Send Context7 API request
    */
   private async makeContext7Request(url: string): Promise<string | null> {
     const controller = new AbortController();
