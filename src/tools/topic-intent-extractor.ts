@@ -76,36 +76,17 @@ export class TopicIntentExtractorTool {
 This tool is the first step in processing AntV technology stack issues, responsible for intelligently identifying, parsing, and structuring user visualization requirements.
 
 When to use this tool:
-- User queries about any G2, G6, L7, X6, F2, S2 or AntV libraries
-- Questions involving chart creation, data visualization, graph analysis, or geo-visualization
-- Requests for implementing interactive features, style configurations, or animation effects
-- Technical questions about graph editing, network analysis, or table analysis
-- Users mention any AntV-related components, APIs, concepts, or terminology
-- Need to solve AntV-related errors, performance, or compatibility issues
-- Learning AntV concepts, seeking code examples, or implementation guidance
-- Any queries containing visualization, charts, graphs, maps and possibly related to AntV
-- User technical requirements described in Chinese or English related to AntV
-- Handle any AntV-related questions during conversation flow
-
-When NOT to use:
-- Questions clearly unrelated to visualization or AntV
-- General programming questions not specific to AntV ecosystem
-- User is asking about non-AntV visualization libraries
+- **AntV-related queries**: Questions about G2/G6/L7/X6/F2/S2 libraries.
+- **Visualization tasks**: Creating charts, graphs, maps, or other visualizations.
+- **Problem solving**: Debugging errors, performance issues, or compatibility problems.
+- **Learning & implementation**: Understanding concepts or requesting code examples.
 
 Key features:
--  Smart Project Dependency Detection: Automatically scans installed AntV libraries in user projects, prioritizes installed technology stacks
--  Automatically identifies AntV technology stack types (G2 charts/G6 graph analysis/L7 geo/X6 editing/F2 mobile/S2 tables)
--  Intelligently extracts technical topic keywords, supports mixed Chinese-English queries
--  Accurately determines user intent: learning/implementing/solving problems
--  Automatically detects task complexity and performs intelligent decomposition
--  Prepares structured information for subsequent antv_assistant tool calls
--  Supports full scenario coverage from simple concept learning to complex functionality implementation
--  Capable of handling multi-step, multi-component complex visualization requirements
-
-Parameters explained:
-- query: User's original query content, supports Chinese and English, can be simple questions or complex requirement descriptions
-- library: AntV library name (g2/g6/l7/x6/f2/s2), optional parameter! If not specified, tool will automatically detect project dependencies and intelligently recommend
-- maxTopics: Maximum number of extracted topic keywords, default 5, can be increased appropriately for complex tasks
+- **Smart Library Detection**: Scans installed AntV libraries and recommends the best fit based on query and project dependencies.
+- **Topic & Intent Extraction**: Intelligently extracts technical topics and determines user intent (learn/implement/solve).
+- **Task Complexity Handling**: Detects complex tasks and decomposes them into manageable subtasks.
+- **Seamless Integration**: Prepares structured data for the antv_assistant tool to provide precise solutions.
+- **Full Scenario Support**: Covers everything from basic learning to advanced implementation.
 
 Smart Library Detection:
 -  Prioritizes AntV libraries installed in the project (e.g., if project has F2 but not G2, will recommend F2 when asking about line charts)
@@ -119,7 +100,7 @@ Smart Library Detection:
         properties: {
           query: {
             type: 'string',
-            description: 'User query content',
+            description: 'User specific question or requirement description',
           },
           library: {
             type: 'string',
@@ -132,7 +113,7 @@ Smart Library Detection:
             minimum: 3,
             maximum: 8,
             default: 5,
-            description: 'Maximum number of extracted topic phrases',
+            description: 'Maximum number of extracted topic keywords, default 5, can be increased appropriately for complex tasks',
           },
         },
         required: ['query'],

@@ -39,77 +39,52 @@ export class AntVAssistantTool {
 
     return {
       name: 'antv_assistant',
-      description: `AntV Professional Documentation Assistant - Provides accurate and detailed visualization solutions based on official AntV documentation.
-This is the core tool for handling all AntV technical issues, capable of providing professional documentation queries, code examples, and practical guidance.
+      description: `AntV Context Retrieval Assistant - Fetches relevant documentation, code examples, and best practices from official AntV resources. Supports G2, G6, L7, X6, F2, and S2 libraries, and handles subtasks iterative queries.
 
 When to use this tool:
-- Handle structured AntV queries output by the topic_intent_extractor tool
-- Any follow-up requirements or supplementary questions after initial AntV queries
-- Need to modify, optimize, or adjust existing AntV visualization solutions
-- Users request to add new features, change styles, or fix issues
-- Extend, refactor, or optimize existing AntV code for performance
-- Solve specific technical difficulties encountered during AntV implementation
-- Users need more detailed code examples or implementation steps
-- Debug AntV-related errors, exceptions, or unexpected behaviors
-- Learn AntV best practices, design patterns, or advanced features
-- Any technical consultation involving G2, G6, L7, X6, F2, S2
-- Iterative requirement refinement during AntV usage
-- Anytime users propose new AntV-related questions or modification requests in conversation
+- **Initial Queries**: For structured AntV questions (e.g., API usage, configuration) or output from topic_intent_extractor.
+- **Implementation & Optimization**: To implement new features, modify styles, refactor code, or optimize performance in AntV solutions.
+- **Debugging & Problem Solving**: For troubleshooting errors, unexpected behaviors, or technical challenges in AntV projects.
+- **Learning & Best Practices**: To explore official documentation, code examples, design patterns, or advanced features.
+- **Complex Task Handling**: For multi-step tasks requiring subtask decomposition (e.g., "Build a dashboard with interactive charts").
 
 When NOT to explicitly declare usage:
-- Users are already in AntV-related conversation context
-- Users propose modifications to existing AntV solutions
-- Users ask follow-up questions like "how else can this be optimized", "how to add XX feature"
-- Users describe AntV-related issues that need resolution
-- Natural continuation in conversation flow without requiring users to declare MCP usage again
-
-Key features:
-- Provides accurate and authoritative technical answers based on official AntV documentation
-- Supports one-stop processing for both simple queries and complex tasks
-- Provides complete code examples and step-by-step implementation guidance
-- Covers G2 charts, G6 graph analysis, L7 geo-visualization, X6 graph editing, F2 mobile, S2 table analysis ecosystem
-- Intelligently adapts to user technical level, providing solutions of appropriate difficulty
-- Supports troubleshooting, performance optimization, and best practice guidance
-- Handles continuous technical requirements in multi-turn conversations
-- Automatically identifies and processes complex task subsequences
-- Provides specialized guidance for different intents (learn/implement/solve)
-- Supports mixed Chinese-English technical documentation retrieval and answers
-
-Parameters explained:
-- library: Specified AntV library type, intelligently identified based on user query
-- query: User's specific technical question or requirement description
-- topic: Technical topic keywords extracted from query for precise documentation retrieval
-- intent: User intent type (learn/implement/solve)
-- tokens: Content detail level control, adjustable based on requirements
-- subTasks: Decomposed subtask list for complex tasks, supports batch processing`,
+- **Existing Context & Simple Tasks**:
+  - Already in AntV-related conversation (e.g., continuing from a previous query).
+  - Direct modifications to existing solutions (e.g., "Change the chart's color").
+  - Simple queries requiring no decomposition (e.g., "How to update the legend position?").
+- **Follow-up Actions**: Users ask optimization or feature-related follow-ups (e.g., "How to add animations?").
+- **Natural Continuation**: Issues or conversations extending naturally without explicit tool calls.
+`,
       inputSchema: {
         type: 'object',
         properties: {
           library: {
             type: 'string',
             enum: ['g2', 'g6', 'l7', 'x6', 'f2', 's2'],
-            description: 'AntV library name',
+            description: 'Specified AntV library type, intelligently identified based on user query',
           },
           query: {
             type: 'string',
-            description: 'User query',
+            description: 'User specific question or requirement description',
           },
           tokens: {
             type: 'number',
             minimum: tokenConfig.min,
             maximum: tokenConfig.max,
             default: tokenConfig.default,
-            description: 'Maximum number of tokens for returned content',
+            description: 'tokens for returned content',
           },
           topic: {
             type: 'string',
             description:
-              'Extracted topic phrases (comma-separated), provided by topic_intent_extractor tool',
+              'Technical topic keywords (comma-separated). ' +
+              'Provided by `topic_intent_extractor` or directly extracted from simple questions.',
           },
           intent: {
             type: 'string',
             description:
-              'Extracted user intent, provided by topic_intent_extractor tool',
+              'Extracted user intent, provided by topic_intent_extractor tool or directly extracted from simple questions.',
           },
           subTasks: {
             type: 'array',
@@ -127,7 +102,7 @@ Parameters explained:
               },
             },
             description:
-              'Decomposed subtask list (optional, if provided will process these subtasks directly instead of internal decomposition)',
+              'Decomposed subtask list for complex tasks, supports batch processing',
           },
         },
         required: ['library', 'query', 'topic', 'intent'],
