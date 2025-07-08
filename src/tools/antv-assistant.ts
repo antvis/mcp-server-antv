@@ -1,5 +1,4 @@
-import type { Tool } from '@modelcontextprotocol/sdk/types.js';
-import type { AntVAssistantArgs, AntVAssistantResult } from '../types/index.js';
+import type { AntVAssistantArgs } from '../types/index.js';
 import { Context7Service } from '../services/context7.js';
 import { Logger, LogLevel } from '../utils/logger.js';
 import {
@@ -7,6 +6,7 @@ import {
   isValidLibrary,
   DEFAULT_CONFIG,
 } from '../config/index.js';
+import { z } from 'zod';
 
 /**
  * AntV Professional Documentation Assistant
@@ -16,375 +16,166 @@ import {
  * After initial queries, if users propose any AntV-related corrections, optimizations, supplements, or new requirements, this tool should be called.
  * Supports both simple queries and complex task processing, providing code examples and best practice recommendations. Covers the entire AntV ecosystem.
  */
-export class AntVAssistantTool {
-  private readonly context7Service: Context7Service;
-  private readonly logger: Logger;
+const context7Service = new Context7Service({
+  logLevel: LogLevel.WARN,
+});
+const logger = new Logger({
+  level: LogLevel.INFO,
+  prefix: 'AntVAssistant',
+});
 
-  constructor() {
-    this.context7Service = new Context7Service({
-      logLevel: LogLevel.WARN,
-    });
+const tokenConfig = DEFAULT_CONFIG.context7.tokens;
 
-    this.logger = new Logger({
-      level: LogLevel.INFO,
-      prefix: 'AntVAssistant',
-    });
+function validateArgs(args: { [x: string]: any }): void {
+  if (!args.library || !args.query?.trim()) {
+    throw new Error('Missing required parameters: library and query');
   }
-
-  /**
-   * Get tool definition
-   */
-  getToolDefinition(): Tool {
-    const tokenConfig = DEFAULT_CONFIG.context7.tokens;
-
-    return {
-      name: 'antv_assistant',
-      description: `AntV Context Retrieval Assistant - Fetches relevant documentation, code examples, and best practices from official AntV resources. Supports G2, G6, L7, X6, F2, and S2 libraries, and handles subtasks iterative queries.
-
-When to use this tool:
-- **Initial Queries**: For structured AntV questions (e.g., API usage, configuration) or output from topic_intent_extractor.
-- **Implementation & Optimization**: To implement new features, modify styles, refactor code, or optimize performance in AntV solutions.
-- **Debugging & Problem Solving**: For troubleshooting errors, unexpected behaviors, or technical challenges in AntV projects.
-- **Learning & Best Practices**: To explore official documentation, code examples, design patterns, or advanced features.
-- **Complex Task Handling**: For multi-step tasks requiring subtask decomposition (e.g., "Build a dashboard with interactive charts").
-
-When NOT to explicitly declare usage:
-- **Existing Context & Simple Tasks**:
-  - Already in AntV-related conversation (e.g., continuing from a previous query).
-  - Direct modifications to existing solutions (e.g., "Change the chart's color").
-  - Simple queries requiring no decomposition (e.g., "How to update the legend position?").
-- **Follow-up Actions**: Users ask optimization or feature-related follow-ups (e.g., "How to add animations?").
-- **Natural Continuation**: Issues or conversations extending naturally without explicit tool calls.
-`,
-      inputSchema: {
-        type: 'object',
-        properties: {
-          library: {
-            type: 'string',
-            enum: ['g2', 'g6', 'l7', 'x6', 'f2', 's2'],
-            description: 'Specified AntV library type, intelligently identified based on user query',
-          },
-          query: {
-            type: 'string',
-            description: 'User specific question or requirement description',
-          },
-          tokens: {
-            type: 'number',
-            minimum: tokenConfig.min,
-            maximum: tokenConfig.max,
-            default: tokenConfig.default,
-            description: 'tokens for returned content',
-          },
-          topic: {
-            type: 'string',
-            description:
-              'Technical topic keywords (comma-separated). ' +
-              'Provided by `topic_intent_extractor` or directly extracted from simple questions.',
-          },
-          intent: {
-            type: 'string',
-            description:
-              'Extracted user intent, provided by topic_intent_extractor tool or directly extracted from simple questions.',
-          },
-          subTasks: {
-            type: 'array',
-            items: {
-              type: 'object',
-              properties: {
-                query: {
-                  type: 'string',
-                  description: 'Subtask query',
-                },
-                topic: {
-                  type: 'string',
-                  description: 'Subtask topic',
-                },
-              },
-            },
-            description:
-              'Decomposed subtask list for complex tasks, supports batch processing',
-          },
-        },
-        required: ['library', 'query', 'topic', 'intent'],
-      },
-    };
+  if (!isValidLibrary(args.library)) {
+    throw new Error(`Unsupported library: ${args.library}`);
   }
+  if (args.topic && !args.intent) {
+    throw new Error('Both topic and intent parameters are required');
+  }
+}
 
-  /**
-   * Execute tool
-   */
-  async execute(args: AntVAssistantArgs): Promise<AntVAssistantResult> {
-    const startTime = Date.now();
-
+async function handleComplexTaskWithDocCheck(
+  args: AntVAssistantArgs,
+  libraryId: string,
+  subTasks: Array<{ query: string; topic: string; intent: string }>,
+): Promise<{ response: string; hasDocumentation: boolean }> {
+  const libraryConfig = getLibraryConfig(args.library);
+  const library = libraryConfig.name;
+  let response = `# ${library} Complex Task Response\n\n`;
+  response += `**User Question**: ${args.query}\n`;
+  response += `**Task Type**: Complex task (decomposed into ${subTasks.length} subtasks)\n`;
+  response += `\n---\n\n`;
+  const tokenPerSubTask = Math.min(
+    Math.floor(
+      (args.tokens || DEFAULT_CONFIG.context7.tokens.default) / subTasks.length,
+    ),
+    1000,
+  );
+  const subTaskPromises = subTasks.map(async (subTask, index) => {
     try {
-      this.validateArgs(args);
-
-      const libraryId = this.context7Service.getLibraryId(args.library);
-
-      let response: string;
-      let subTaskResults: any[] = [];
-      let isComplexTask = false;
-      let hasDocumentation = false;
-
-      // If subtasks are provided, it's a complex task
-      if (args.subTasks && args.subTasks.length > 0) {
-        isComplexTask = true;
-        const { response: taskResponse, hasDocumentation: taskHasDoc } =
-          await this.handleComplexTaskWithDocCheck(
-            args,
-            libraryId,
-            args.subTasks,
-          );
-        response = taskResponse;
-        hasDocumentation = taskHasDoc;
-        subTaskResults = args.subTasks;
-      } else {
-        // Simple task: direct query
-        const { documentation, error: docError } =
-          await this.context7Service.fetchLibraryDocumentation(
-            libraryId,
-            args.topic,
-            args.tokens || DEFAULT_CONFIG.context7.tokens.default,
-          );
-        hasDocumentation =
-          documentation !== null && documentation.trim() !== '';
-        response = this.generateResponse(args, documentation, docError);
-      }
-
-      const processingTime = Date.now() - startTime;
-
-      return {
-        content: [{ type: 'text', text: response }],
-        metadata: {
-          topics: args.topic.split(',').map((t) => t.trim()),
-          intent: args.intent,
-          library: args.library,
-          hasDocumentation,
-          processingTime,
-        },
-      };
+      logger.info(
+        `Processing subtask ${index + 1}/${subTasks.length}: ${subTask.topic}`,
+      );
+      const { documentation, error: docError } =
+        await context7Service.fetchLibraryDocumentation(
+          libraryId,
+          subTask.topic,
+          tokenPerSubTask,
+        );
+      return { task: subTask, documentation, error: docError };
     } catch (error) {
-      this.logger.error('Failed to execute assistant tool:', error);
-      const processingTime = Date.now() - startTime;
-
+      logger.error(`Failed to process subtask ${index + 1}:`, error);
       return {
-        content: [
-          {
-            type: 'text',
-            text: `❌ Processing failed: ${
-              error instanceof Error ? error.message : 'Unknown error'
-            }`,
-          },
-        ],
-        isError: true,
-        metadata: {
-          topics: args.topic ? args.topic.split(',').map((t) => t.trim()) : [],
-          intent: args.intent,
-          library: args.library,
-          hasDocumentation: false,
-          processingTime,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        },
+        task: subTask,
+        documentation: null,
+        error: error instanceof Error ? error.message : String(error),
       };
     }
-  }
-
-  /**
-   * Handle complex tasks and check documentation retrieval status
-   */
-  private async handleComplexTaskWithDocCheck(
-    args: AntVAssistantArgs,
-    libraryId: string,
-    subTasks: Array<{ query: string; topic: string; intent: string }>,
-  ): Promise<{ response: string; hasDocumentation: boolean }> {
-    const libraryConfig = getLibraryConfig(args.library);
-    const library = libraryConfig.name;
-
-    let response = `# ${library} Complex Task Response\n\n`;
-    response += `**User Question**: ${args.query}\n`;
-    response += `**Task Type**: Complex task (decomposed into ${subTasks.length} subtasks)\n`;
-    response += `\n---\n\n`;
-
-    // Limit tokens per subtask to avoid overly long responses
-    const tokenPerSubTask = Math.min(
-      Math.floor(
-        (args.tokens || DEFAULT_CONFIG.context7.tokens.default) /
-          subTasks.length,
-      ),
-      1000, // Maximum 1000 tokens per subtask
-    );
-
-    const subTaskPromises = subTasks.map(async (subTask, index) => {
-      try {
-        this.logger.info(
-          `Processing subtask ${index + 1}/${subTasks.length}: ${
-            subTask.topic
-          }`,
-        );
-
-        const { documentation, error: docError } =
-          await this.context7Service.fetchLibraryDocumentation(
-            libraryId,
-            subTask.topic,
-            tokenPerSubTask,
-          );
-
-        return { task: subTask, documentation, error: docError };
-      } catch (error) {
-        this.logger.error(`Failed to process subtask ${index + 1}:`, error);
-        return {
-          task: subTask,
-          documentation: null,
-          error: error instanceof Error ? error.message : String(error),
-        };
-      }
-    });
-
-    const subTaskResults = await Promise.all(subTaskPromises);
-
-    // Check if there's valid documentation
-    const hasValidDocumentation = subTaskResults.some(
-      (result) =>
-        result.documentation !== null && result.documentation.trim() !== '',
-    );
-
-    // Generate subtask results
-    for (const [index, result] of subTaskResults.entries()) {
-      response += `## 📋 Subtask ${index + 1}\n\n`;
-      response += `**Subtask Query**: ${result.task.query}\n`;
-      response += `**Subtask Topic**: ${result.task.topic}\n\n`;
-
-      if (result.documentation) {
-        response += `${result.documentation}\n\n`;
+  });
+  const subTaskResults = await Promise.all(subTaskPromises);
+  const hasValidDocumentation = subTaskResults.some(
+    (result) =>
+      result.documentation !== null && result.documentation.trim() !== '',
+  );
+  for (const [index, result] of subTaskResults.entries()) {
+    response += `## 📋 Subtask ${index + 1}\n\n`;
+    response += `**Subtask Query**: ${result.task.query}\n`;
+    response += `**Subtask Topic**: ${result.task.topic}\n\n`;
+    if (result.documentation) {
+      response += `${result.documentation}\n\n`;
+    } else {
+      response += `⚠️ Could not retrieve relevant documentation content\n\n`;
+      if (result.error) {
+        response += `\nError: ${result.error}\n`;
       } else {
-        response += `⚠️ Could not retrieve relevant documentation content\n\n`;
-        if (result.error) {
-          response += `\nError: ${result.error}\n`;
-        } else {
-          response += `\n`;
-        }
         response += `\n`;
       }
-
-      response += `---\n\n`;
+      response += `\n`;
     }
-
-    // Generate summary and recommendations
-    response += `## 🎯 Task Integration Recommendations\n\n`;
-    response += this.generateComplexTaskSummary(args, subTaskResults);
-    response += this.generateIntentSpecificGuidance(args.intent, library);
-
-    // Add follow-up query guidance
-    response += this.generateFollowUpGuidance();
-
-    return { response, hasDocumentation: hasValidDocumentation };
+    response += `---\n\n`;
   }
+  response += `## 🎯 Task Integration Recommendations\n\n`;
+  response += generateComplexTaskSummary(args, subTaskResults);
+  response += generateIntentSpecificGuidance(args.intent, library);
+  response += generateFollowUpGuidance();
+  return { response, hasDocumentation: hasValidDocumentation };
+}
 
-  /**
-   * Generate complex task summary
-   */
-  private generateComplexTaskSummary(
-    args: AntVAssistantArgs,
-    subTaskResults: Array<{
-      task: any;
-      documentation: string | null;
-      error: string | undefined;
-    }>,
-  ): string {
-    const successCount = subTaskResults.filter((r) => r.documentation).length;
-    const totalCount = subTaskResults.length;
-
-    let summary = `Based on ${successCount}/${totalCount} subtask documentation query results:\n\n`;
-
-    if (successCount === totalCount) {
-      summary += `✅ **Complete Answer**: All subtasks found relevant documentation`;
-    } else if (successCount > totalCount / 2) {
-      summary += `⚠️ **Partial Answer**: Most subtasks found relevant documentation. Recommendations:\n\n`;
-      summary += `1. Implement features with documentation support first\n`;
-      summary += `2. For parts lacking documentation, consult official resources or example code\n`;
-      summary += `3. Gradually improve solutions through practice\n\n`;
-    } else {
-      summary += `❌ **Insufficient Documentation**: Most subtasks lack documentation support. Recommendations:\n\n`;
-      summary += `1. Refine query keywords\n`;
-      summary += `2. Consult official documentation and examples\n`;
-      summary += `3. Look for community resources and best practices\n\n`;
-    }
-
-    return summary;
+function generateComplexTaskSummary(
+  args: AntVAssistantArgs,
+  subTaskResults: Array<{
+    task: any;
+    documentation: string | null;
+    error: string | undefined;
+  }>,
+): string {
+  const successCount = subTaskResults.filter((r) => r.documentation).length;
+  const totalCount = subTaskResults.length;
+  let summary = `Based on ${successCount}/${totalCount} subtask documentation query results:\n\n`;
+  if (successCount === totalCount) {
+    summary += `✅ **Complete Answer**: All subtasks found relevant documentation`;
+  } else if (successCount > totalCount / 2) {
+    summary += `⚠️ **Partial Answer**: Most subtasks found relevant documentation. Recommendations:\n\n`;
+    summary += `1. Implement features with documentation support first\n`;
+    summary += `2. For parts lacking documentation, consult official resources or example code\n`;
+    summary += `3. Gradually improve solutions through practice\n\n`;
+  } else {
+    summary += `❌ **Insufficient Documentation**: Most subtasks lack documentation support. Recommendations:\n\n`;
+    summary += `1. Refine query keywords\n`;
+    summary += `2. Consult official documentation and examples\n`;
+    summary += `3. Look for community resources and best practices\n\n`;
   }
+  return summary;
+}
 
-  /**
-   * Validate input arguments
-   */
-  private validateArgs(args: AntVAssistantArgs): void {
-    if (!args.library || !args.query?.trim()) {
-      throw new Error('Missing required parameters: library and query');
-    }
-
-    if (!isValidLibrary(args.library)) {
-      throw new Error(`Unsupported library: ${args.library}`);
-    }
-
-    if (args.topic && !args.intent) {
-      throw new Error('Both topic and intent parameters are required');
-    }
+function generateResponse(
+  args: AntVAssistantArgs,
+  context: string | null,
+  errorMsg?: string | undefined,
+): string {
+  const libraryConfig = getLibraryConfig(args.library);
+  const library = libraryConfig.name;
+  let response = `# ${library} Q&A\n\n`;
+  response += `**User Question**: ${args.query}\n`;
+  response += `**Search Topic**: ${args.topic}\n`;
+  response += `\n---\n\n`;
+  if (context) {
+    response += `## 📚 Related Documentation\n\n${context}\n\n`;
+    response += generateIntentSpecificGuidance(args.intent, library);
+  } else {
+    response += `## ⚠️ Documentation Retrieval Failed\n\n`;
+    response += `\nError: ${errorMsg}\n`;
+    response += `Could not retrieve relevant documentation content. Recommendations:\n`;
+    response += `1. Check if search topics are accurate\n`;
+    response += `2. Try using more specific technical terms\n`;
+    response += `3. Refer to ${library} official documentation\n`;
   }
+  response += generateFollowUpGuidance();
+  return response;
+}
 
-  /**
-   * Generate response content (simple task)
-   */
-  private generateResponse(
-    args: AntVAssistantArgs,
-    context: string | null,
-    errorMsg?: string | undefined,
-  ): string {
-    const libraryConfig = getLibraryConfig(args.library);
-    const library = libraryConfig.name;
-
-    let response = `# ${library} Q&A\n\n`;
-    response += `**User Question**: ${args.query}\n`;
-    response += `**Search Topic**: ${args.topic}\n`;
-    response += `\n---\n\n`;
-
-    if (context) {
-      response += `## 📚 Related Documentation\n\n${context}\n\n`;
-      response += this.generateIntentSpecificGuidance(args.intent, library);
-    } else {
-      response += `## ⚠️ Documentation Retrieval Failed\n\n`;
-      response += `\nError: ${errorMsg}\n`;
-      response += `Could not retrieve relevant documentation content. Recommendations:\n`;
-      response += `1. Check if search topics are accurate\n`;
-      response += `2. Try using more specific technical terms\n`;
-      response += `3. Refer to ${library} official documentation\n`;
-    }
-
-    // Add follow-up query guidance
-    response += this.generateFollowUpGuidance();
-
-    return response;
+function generateIntentSpecificGuidance(
+  intent: string,
+  library: string,
+): string {
+  switch (intent) {
+    case 'learn':
+      return generateLearnGuidance(library);
+    case 'implement':
+      return generateImplementGuidance(library);
+    case 'solve':
+      return generateSolveGuidance(library);
+    default:
+      return generateDefaultGuidance(library);
   }
+}
 
-  /**
-   * Generate specific guidance based on intent
-   */
-  private generateIntentSpecificGuidance(
-    intent: string,
-    library: string,
-  ): string {
-    switch (intent) {
-      case 'learn':
-        return this.generateLearnGuidance(library);
-      case 'implement':
-        return this.generateImplementGuidance(library);
-      case 'solve':
-        return this.generateSolveGuidance(library);
-      default:
-        return this.generateDefaultGuidance(library);
-    }
-  }
-
-  private generateLearnGuidance(library: string): string {
-    return `## 💡 Learning Recommendations
+function generateLearnGuidance(library: string): string {
+  return `## 💡 Learning Recommendations
 
 - First understand the core concepts and basic usage in the documentation
 - Run example code to observe effects and parameter functions
@@ -392,10 +183,9 @@ When NOT to explicitly declare usage:
 - Consult official documentation when encountering problems
 
 `;
-  }
-
-  private generateImplementGuidance(library: string): string {
-    return `## 🛠️ Implementation Recommendations
+}
+function generateImplementGuidance(library: string): string {
+  return `## 🛠️ Implementation Recommendations
 
 - Refer to example code in the documentation
 - Pay attention to required and optional parameter configurations
@@ -403,10 +193,9 @@ When NOT to explicitly declare usage:
 - Don't over-optimize, focus on user requirements
 - Merge multiple examples into one final solution with only core functionality
 `;
-  }
-
-  private generateSolveGuidance(library: string): string {
-    return `## 🔧 Troubleshooting
+}
+function generateSolveGuidance(library: string): string {
+  return `## 🔧 Troubleshooting
 
 - Check error messages and parameter configurations
 - Compare your code with documentation examples for differences
@@ -414,10 +203,9 @@ When NOT to explicitly declare usage:
 - If problems persist, check official GitHub Issues
 
 `;
-  }
-
-  private generateDefaultGuidance(library: string): string {
-    return `## 📖 Usage Recommendations
+}
+function generateDefaultGuidance(library: string): string {
+  return `## 📖 Usage Recommendations
 
 - Carefully read the above documentation content
 - Practice with reference to code examples
@@ -425,13 +213,10 @@ When NOT to explicitly declare usage:
 - Consult ${library} official documentation for more information
 
 `;
-  }
+}
+function generateFollowUpGuidance(): string {
+  return `
 
-  /**
-   * Generate follow-up query guidance to ensure AI assistant calls tools for subsequent AntV-related queries
-   */
-  private generateFollowUpGuidance(): string {
-    return `
 ---
 
 ## 🔄 Important Notice
@@ -443,5 +228,121 @@ When NOT to explicitly declare usage:
 - Maintain accuracy of AntV best practices and latest APIs
 
 `;
-  }
 }
+
+export const AntVAssistantTool = {
+  name: 'antv_assistant',
+  description: `AntV Context Retrieval Assistant - Fetches relevant documentation, code examples, and best practices from official AntV resources. Supports G2, G6, L7, X6, F2, and S2 libraries, and handles subtasks iterative queries.
+  When to use this tool:
+  - **Initial Queries**: For structured AntV questions (e.g., API usage, configuration) or output from topic_intent_extractor.
+  - **Implementation & Optimization**: To implement new features, modify styles, refactor code, or optimize performance in AntV solutions.
+  - **Debugging & Problem Solving**: For troubleshooting errors, unexpected behaviors, or technical challenges in AntV projects.
+  - **Learning & Best Practices**: To explore official documentation, code examples, design patterns, or advanced features.
+  - **Complex Task Handling**: For multi-step tasks requiring subtask decomposition (e.g., "Build a dashboard with interactive charts").
+  When NOT to explicitly declare usage:
+  - **Existing Context & Simple Tasks**:
+    - Already in AntV-related conversation (e.g., continuing from a previous query).
+    - Direct modifications to existing solutions (e.g., "Change the chart's color").
+    - Simple queries requiring no decomposition (e.g., "How to update the legend position?").
+  - **Follow-up Actions**: Users ask optimization or feature-related follow-ups (e.g., "How to add animations?").
+  - **Natural Continuation**: Issues or conversations extending naturally without explicit tool calls.`,
+  inputSchema: z.object({
+    library: z
+      .enum(['g2', 'g6', 'l7', 'x6', 'f2', 's2'])
+      .describe(
+        'Specified AntV library type, intelligently identified based on user query',
+      ),
+    query: z
+      .string()
+      .describe('User specific question or requirement description'),
+    tokens: z
+      .number()
+      .min(tokenConfig.min)
+      .max(tokenConfig.max)
+      .default(tokenConfig.default)
+      .describe('tokens for returned content'),
+    topic: z
+      .string()
+      .describe(
+        'Technical topic keywords (comma-separated). Provided by `topic_intent_extractor` or directly extracted from simple questions.',
+      ),
+    intent: z
+      .string()
+      .describe(
+        'Extracted user intent, provided by topic_intent_extractor tool or directly extracted from simple questions.',
+      ),
+    subTasks: z
+      .array(
+        z.object({
+          query: z.string().describe('Subtask query'),
+          topic: z.string().describe('Subtask topic'),
+        }),
+      )
+      .describe(
+        'Decomposed subtask list for complex tasks, supports batch processing',
+      )
+      .optional(),
+  }),
+  async run(args: AntVAssistantArgs) {
+    const startTime = Date.now();
+    try {
+      validateArgs(args);
+      const libraryId = context7Service.getLibraryId(args.library);
+      let response: string;
+      let subTaskResults: any[] = [];
+      let isComplexTask = false;
+      let hasDocumentation = false;
+      if (args.subTasks && args.subTasks.length > 0) {
+        isComplexTask = true;
+        const { response: taskResponse, hasDocumentation: taskHasDoc } =
+          await handleComplexTaskWithDocCheck(args, libraryId, args.subTasks);
+        response = taskResponse;
+        hasDocumentation = taskHasDoc;
+        subTaskResults = args.subTasks;
+      } else {
+        const { documentation, error: docError } =
+          await context7Service.fetchLibraryDocumentation(
+            libraryId,
+            args.topic,
+            args.tokens || DEFAULT_CONFIG.context7.tokens.default,
+          );
+        hasDocumentation =
+          documentation !== null && documentation.trim() !== '';
+        response = generateResponse(args, documentation, docError);
+      }
+      const processingTime = Date.now() - startTime;
+      return {
+        content: [{ type: 'text', text: response }],
+        _meta: {
+          topics: args.topic.split(',').map((t) => t.trim()),
+          intent: args.intent,
+          library: args.library,
+          hasDocumentation,
+          processingTime,
+        },
+      };
+    } catch (error) {
+      logger.error('Failed to execute assistant tool:', error);
+      const processingTime = Date.now() - startTime;
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `❌ Processing failed: ${
+              error instanceof Error ? error.message : 'Unknown error'
+            }`,
+          },
+        ],
+        isError: true,
+        _meta: {
+          topics: args.topic ? args.topic.split(',').map((t) => t.trim()) : [],
+          intent: args.intent,
+          library: args.library,
+          hasDocumentation: false,
+          processingTime,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
+      };
+    }
+  },
+};
