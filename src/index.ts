@@ -6,16 +6,15 @@
  * MCP server providing documentation query and Q&A services for AntV visualization libraries
  * Supports topic extraction, intent recognition, and intelligent document retrieval
  */
-
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { createServer } from 'http';
 import { Command } from 'commander';
-
-import { Logger, LogLevel } from './utils/logger.js';
-import { DEFAULT_CONFIG } from './config/index.js';
-import registryTools from './tools/index.js';
+import { Logger, LogLevel } from './utils';
+import { DEFAULT_CONFIG } from './constant';
+import { AntVAssistantTool, TopicIntentExtractorTool } from './tools';
+import { type AntVAssistantArgs } from './types'
 
 const program = new Command()
   .option('--transport <stdio|http>', 'transport type', 'stdio')
@@ -41,10 +40,18 @@ class AntVMcpServer {
       // 不要传 tools 字段
     });
 
-    // 注册工具（1.x 方式）
-    // this.server.registerTool(new AntVAssistantTool());
-    // this.server.registerTool(new TopicIntentExtractorTool());
-    registryTools(this.server);
+    [TopicIntentExtractorTool, AntVAssistantTool].forEach((tool) => {
+    const { name, description, inputSchema, run } = tool;
+    this.server.tool(
+      name,
+      description,
+      inputSchema.shape,
+      async (args: { [x: string]: any }) => {
+        return (await run(args as AntVAssistantArgs)) as any;
+      },
+    );
+  });
+
     const logLevel = LogLevel[DEFAULT_CONFIG.logger.level] || LogLevel.INFO;
     this.logger = new Logger({
       level: logLevel,

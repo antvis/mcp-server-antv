@@ -1,11 +1,11 @@
-import type { AntVLibrary } from '../types/index.js';
+import type { AntVLibrary } from '../types.js';
 import { Logger, LogLevel } from '../utils/logger.js';
 import {
   getLibraryConfig,
   isValidLibrary,
   LIBRARY_KEYWORDS_MAPPING,
   LIBRARY_MAPPING,
-} from '../config/index.js';
+} from '../constant.js';
 import { z } from 'zod';
 
 /**

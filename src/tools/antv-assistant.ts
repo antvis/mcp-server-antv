@@ -1,11 +1,11 @@
-import type { AntVAssistantArgs } from '../types/index.js';
-import { Context7Service } from '../services/context7.js';
+import type { AntVAssistantArgs } from '../types.js';
+import { Context7Service } from '../utils/context7.js';
 import { Logger, LogLevel } from '../utils/logger.js';
 import {
   getLibraryConfig,
   isValidLibrary,
   DEFAULT_CONFIG,
-} from '../config/index.js';
+} from '../constant.js';
 import { z } from 'zod';
 
 /**

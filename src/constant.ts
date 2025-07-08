@@ -1,5 +1,5 @@
-import type { AntVLibrary } from '../types/index.js';
-import { LogLevel } from '../utils/logger.js';
+import type { AntVLibrary } from './types.js';
+import { LogLevel } from './utils/logger.js';
 
 export const LIBRARY_MAPPING = {
   g2: { id: 'g2', name: 'G2' },
