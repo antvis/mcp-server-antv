@@ -1,0 +1,68 @@
+{
+  "name": "antv_assistant",
+  "description": "AntV Context Retrieval Assistant - Fetches relevant documentation, code examples, and best practices from official AntV resources. Supports G2, G6, L7, X6, F2, and S2 libraries, and handles subtasks iterative queries.\n  When to use this tool:\n  - **Initial Queries**: For structured AntV questions (e.g., API usage, configuration) or output from topic_intent_extractor.\n  - **Implementation & Optimization**: To implement new features, modify styles, refactor code, or optimize performance in AntV solutions.\n  - **Debugging & Problem Solving**: For troubleshooting errors, unexpected behaviors, or technical challenges in AntV projects.\n  - **Learning & Best Practices**: To explore official documentation, code examples, design patterns, or advanced features.\n  - **Complex Task Handling**: For multi-step tasks requiring subtask decomposition (e.g., \"Build a dashboard with interactive charts\").\n  When NOT to explicitly declare usage:\n  - **Existing Context & Simple Tasks**:\n    - Already in AntV-related conversation (e.g., continuing from a previous query).\n    - Direct modifications to existing solutions (e.g., \"Change the chart's color\").\n    - Simple queries requiring no decomposition (e.g., \"How to update the legend position?\").\n  - **Follow-up Actions**: Users ask optimization or feature-related follow-ups (e.g., \"How to add animations?\").\n  - **Natural Continuation**: Issues or conversations extending naturally without explicit tool calls.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "library": {
+        "type": "string",
+        "enum": [
+          "g2",
+          "g6",
+          "l7",
+          "x6",
+          "f2",
+          "s2"
+        ],
+        "description": "Specified AntV library type, intelligently identified based on user query"
+      },
+      "query": {
+        "type": "string",
+        "description": "User specific question or requirement description"
+      },
+      "tokens": {
+        "type": "number",
+        "minimum": 1000,
+        "maximum": 20000,
+        "default": 1000,
+        "description": "tokens for returned content"
+      },
+      "topic": {
+        "type": "string",
+        "description": "Technical topic keywords (comma-separated). Provided by `topic_intent_extractor` or directly extracted from simple questions."
+      },
+      "intent": {
+        "type": "string",
+        "description": "Extracted user intent, provided by topic_intent_extractor tool or directly extracted from simple questions."
+      },
+      "subTasks": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Subtask query"
+            },
+            "topic": {
+              "type": "string",
+              "description": "Subtask topic"
+            }
+          },
+          "required": [
+            "query",
+            "topic"
+          ]
+        },
+        "description": "Decomposed subtask list for complex tasks, supports batch processing"
+      }
+    },
+    "required": [
+      "library",
+      "query",
+      "topic",
+      "intent"
+    ],
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  }
+}

@@ -1,12 +1,12 @@
-import type { AntVLibrary } from '../types.js';
-import { Logger, LogLevel } from '../utils/logger.js';
+import { z } from 'zod';
+import type { AntVLibrary } from '../types';
+import { Logger, LogLevel, zodToJsonSchema } from '../utils';
 import {
   getLibraryConfig,
   isValidLibrary,
   LIBRARY_KEYWORDS_MAPPING,
   LIBRARY_MAPPING,
-} from '../constant.js';
-import { z } from 'zod';
+} from '../constant';
 
 /**
  * AntV Intelligent Assistant Preprocessing Tool
@@ -17,28 +17,6 @@ import { z } from 'zod';
 const logger = new Logger({
   level: LogLevel.INFO,
   prefix: 'TopicIntentExtractor',
-});
-
-export const TopicIntentExtractorInputSchema = z.object({
-  query: z
-    .string()
-    .min(1, 'Query content cannot be empty')
-    .describe('User specific question or requirement description'),
-  library: z
-    .enum(['g2', 'g6', 'l7', 'x6', 'f2', 's2'])
-    .optional()
-    .describe(
-      'AntV library name (optional) - If not specified, tool will automatically detect project dependencies and intelligently recommend',
-    ),
-  maxTopics: z
-    .number()
-    .min(3)
-    .max(8)
-    .default(5)
-    .optional()
-    .describe(
-      'Maximum number of extracted topic keywords, default 5, can be increased appropriately for complex tasks',
-    ),
 });
 
 function validateArgs(args: any): void {
@@ -318,7 +296,27 @@ export const TopicIntentExtractorTool = {
   - **Task Complexity Handling**: Detects complex tasks and decomposes them into manageable subtasks.
   - **Seamless Integration**: Prepares structured data for the antv_assistant tool to provide precise solutions.
   - **Full Scenario Support**: Covers everything from basic learning to advanced implementation.`,
-  inputSchema: TopicIntentExtractorInputSchema,
+  inputSchema: zodToJsonSchema({
+    query: z
+      .string()
+      .min(1, 'Query content cannot be empty')
+      .describe('User specific question or requirement description'),
+    library: z
+      .enum(['g2', 'g6', 'l7', 'x6', 'f2', 's2'])
+      .optional()
+      .describe(
+        'AntV library name (optional) - If not specified, tool will automatically detect project dependencies and intelligently recommend',
+      ),
+    maxTopics: z
+      .number()
+      .min(3)
+      .max(8)
+      .default(5)
+      .optional()
+      .describe(
+        'Maximum number of extracted topic keywords, default 5, can be increased appropriately for complex tasks',
+      ),
+  }),
   async run(args: any) {
     const startTime = Date.now();
     try {

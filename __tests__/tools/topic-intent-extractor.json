@@ -1,0 +1,37 @@
+{
+  "name": "topic_intent_extractor",
+  "description": "AntV Intelligent Assistant Preprocessing Tool - Specifically designed to handle any user queries related to AntV visualization libraries.\n  This tool is the first step in processing AntV technology stack issues, responsible for intelligently identifying, parsing, and structuring user visualization requirements.\n  When to use this tool:\n  - **AntV-related queries**: Questions about G2/G6/L7/X6/F2/S2 libraries.\n  - **Visualization tasks**: Creating charts, graphs, maps, or other visualizations.\n  - **Problem solving**: Debugging errors, performance issues, or compatibility problems.\n  - **Learning & implementation**: Understanding concepts or requesting code examples.\n  Key features:\n  - **Smart Library Detection**: Scans installed AntV libraries and recommends the best fit based on query and project dependencies.\n  - **Topic & Intent Extraction**: Intelligently extracts technical topics and determines user intent (learn/implement/solve).\n  - **Task Complexity Handling**: Detects complex tasks and decomposes them into manageable subtasks.\n  - **Seamless Integration**: Prepares structured data for the antv_assistant tool to provide precise solutions.\n  - **Full Scenario Support**: Covers everything from basic learning to advanced implementation.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string",
+        "minLength": 1,
+        "description": "User specific question or requirement description"
+      },
+      "library": {
+        "type": "string",
+        "enum": [
+          "g2",
+          "g6",
+          "l7",
+          "x6",
+          "f2",
+          "s2"
+        ],
+        "description": "AntV library name (optional) - If not specified, tool will automatically detect project dependencies and intelligently recommend"
+      },
+      "maxTopics": {
+        "type": "number",
+        "minimum": 3,
+        "maximum": 8,
+        "default": 5,
+        "description": "Maximum number of extracted topic keywords, default 5, can be increased appropriately for complex tasks"
+      }
+    },
+    "required": [
+      "query"
+    ],
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  }
+}
