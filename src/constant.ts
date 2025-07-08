@@ -1,5 +1,4 @@
 import type { AntVLibrary } from './types';
-import { LogLevel } from './utils/logger';
 
 export const LIBRARY_MAPPING = {
   g2: { id: 'g2', name: 'G2' },
@@ -34,23 +33,11 @@ export const LIBRARY_KEYWORDS_MAPPING = {
   l7: [],
 };
 
-export const DEFAULT_CONFIG = {
-  // Context7 service configuration
-  context7: {
-    baseUrl: 'https://context7.com/api',
-    timeout: 30000,
-    tokens: {
-      default: 1000,
-      max: 20000,
-      min: 1000,
-    },
-  },
-
-  // Logger configuration
-  logger: {
-    level: (process.env.LOG_LEVEL as keyof typeof LogLevel) || 'INFO',
-  },
-} as const;
+export const CONTEXT7_TOKENS = {
+  default: 1000,
+  max: 20000,
+  min: 1000,
+}
 
 export function isValidLibrary(library: string): library is AntVLibrary {
   return library in LIBRARY_MAPPING;

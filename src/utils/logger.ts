@@ -1,3 +1,5 @@
+import { getEnvLoggerLevel } from "./env";
+
 export enum LogLevel {
   DEBUG = 0,
   INFO = 1,
@@ -5,21 +7,19 @@ export enum LogLevel {
   ERROR = 3,
 }
 
-export interface LoggerOptions {
-  level?: LogLevel;
-  prefix?: string;
-  enableColors?: boolean;
-}
-
+/**
+ * Logger class for logging messages with different severity levels.
+ * Supports colorized output in the console and customizable log levels.
+ */
 export class Logger {
   private level: LogLevel;
   private prefix: string;
   private enableColors: boolean;
 
-  constructor(options: LoggerOptions = {}) {
-    this.level = options.level ?? LogLevel.INFO;
-    this.prefix = options.prefix || '';
-    this.enableColors = options.enableColors ?? true;
+  constructor(level = LogLevel.INFO, prefix = '', enableColors = true) {
+    this.level = level
+    this.prefix = prefix
+    this.enableColors = enableColors
   }
 
   private formatMessage(level: string, message: string): string {
@@ -42,6 +42,11 @@ export class Logger {
     return `${colors[color] || ''}${text}${colors.reset}`;
   }
 
+  /**
+   * Logs a debug message.
+   * @param message The message to log.
+   * @param args Additional arguments to include in the log.
+   */
   debug(message: string, ...args: any[]): void {
     if (this.level <= LogLevel.DEBUG) {
       const formatted = this.formatMessage('DEBUG', message);
@@ -49,6 +54,11 @@ export class Logger {
     }
   }
 
+  /**
+   * Logs an info message.
+   * @param message The message to log.
+   * @param args Additional arguments to include in the log.
+   */
   info(message: string, ...args: any[]): void {
     if (this.level <= LogLevel.INFO) {
       const formatted = this.formatMessage('INFO', message);
@@ -56,6 +66,11 @@ export class Logger {
     }
   }
 
+  /**
+   * Logs a warning message.
+   * @param message The message to log.
+   * @param args Additional arguments to include in the log.
+   */
   warn(message: string, ...args: any[]): void {
     if (this.level <= LogLevel.WARN) {
       const formatted = this.formatMessage('WARN', message);
@@ -63,27 +78,21 @@ export class Logger {
     }
   }
 
+  /**
+   * Logs an error message.
+   * @param message The message to log.
+   * @param args Additional arguments to include in the log.
+   */
   error(message: string, ...args: any[]): void {
     if (this.level <= LogLevel.ERROR) {
       const formatted = this.formatMessage('ERROR', message);
       console.error(this.colorize(formatted, 'red'), ...args);
     }
   }
-
-  setLevel(level: LogLevel): void {
-    this.level = level;
-  }
-
-  getLevel(): LogLevel {
-    return this.level;
-  }
-
-  child(prefix: string): Logger {
-    const childPrefix = this.prefix ? `${this.prefix}:${prefix}` : prefix;
-    return new Logger({
-      level: this.level,
-      prefix: childPrefix,
-      enableColors: this.enableColors,
-    });
-  }
 }
+
+/**
+ * Logger instance for the MCP Server AntV.
+ * Uses the environment variable `LOGGER_LEVEL` to set the log level.
+ */
+export const logger = new Logger(getEnvLoggerLevel() as unknown as LogLevel, 'MCPServerAntV', true);

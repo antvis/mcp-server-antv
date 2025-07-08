@@ -1,12 +1,3 @@
-import { z } from 'zod';
-import type { AntVAssistantArgs } from '../types';
-import { Logger, LogLevel, Context7Service } from '../utils';
-import {
-  getLibraryConfig,
-  isValidLibrary,
-  DEFAULT_CONFIG,
-} from '../constant';
-
 /**
  * AntV Professional Documentation Assistant
  *
@@ -15,15 +6,28 @@ import {
  * After initial queries, if users propose any AntV-related corrections, optimizations, supplements, or new requirements, this tool should be called.
  * Supports both simple queries and complex task processing, providing code examples and best practice recommendations. Covers the entire AntV ecosystem.
  */
-const context7Service = new Context7Service({
-  logLevel: LogLevel.WARN,
-});
-const logger = new Logger({
-  level: LogLevel.INFO,
-  prefix: 'AntVAssistant',
-});
 
-const tokenConfig = DEFAULT_CONFIG.context7.tokens;
+import { z } from 'zod';
+import type { AntVLibrary } from '../types';
+import { logger, getLibraryId, fetchLibraryDocumentation } from '../utils';
+import {
+  getLibraryConfig,
+  isValidLibrary,
+  CONTEXT7_TOKENS,
+} from '../constant';
+
+type AntVAssistantArgs = {
+  library: AntVLibrary;
+  query: string;
+  tokens?: number;
+  topic: string;
+  intent: string;
+  subTasks?: Array<{
+    query: string;
+    topic: string;
+    intent: string;
+  }>;
+}
 
 function validateArgs(args: { [x: string]: any }): void {
   if (!args.library || !args.query?.trim()) {
@@ -50,7 +54,7 @@ async function handleComplexTaskWithDocCheck(
   response += `\n---\n\n`;
   const tokenPerSubTask = Math.min(
     Math.floor(
-      (args.tokens || DEFAULT_CONFIG.context7.tokens.default) / subTasks.length,
+      (args.tokens || CONTEXT7_TOKENS.default) / subTasks.length,
     ),
     1000,
   );
@@ -60,7 +64,7 @@ async function handleComplexTaskWithDocCheck(
         `Processing subtask ${index + 1}/${subTasks.length}: ${subTask.topic}`,
       );
       const { documentation, error: docError } =
-        await context7Service.fetchLibraryDocumentation(
+        await fetchLibraryDocumentation(
           libraryId,
           subTask.topic,
           tokenPerSubTask,
@@ -183,6 +187,7 @@ function generateLearnGuidance(library: string): string {
 
 `;
 }
+
 function generateImplementGuidance(library: string): string {
   return `## 🛠️ Implementation Recommendations
 
@@ -193,6 +198,7 @@ function generateImplementGuidance(library: string): string {
 - Merge multiple examples into one final solution with only core functionality
 `;
 }
+
 function generateSolveGuidance(library: string): string {
   return `## 🔧 Troubleshooting
 
@@ -203,6 +209,7 @@ function generateSolveGuidance(library: string): string {
 
 `;
 }
+
 function generateDefaultGuidance(library: string): string {
   return `## 📖 Usage Recommendations
 
@@ -213,6 +220,7 @@ function generateDefaultGuidance(library: string): string {
 
 `;
 }
+
 function generateFollowUpGuidance(): string {
   return `
 
@@ -256,9 +264,9 @@ export const AntVAssistantTool = {
       .describe('User specific question or requirement description'),
     tokens: z
       .number()
-      .min(tokenConfig.min)
-      .max(tokenConfig.max)
-      .default(tokenConfig.default)
+      .min(CONTEXT7_TOKENS.min)
+      .max(CONTEXT7_TOKENS.max)
+      .default(CONTEXT7_TOKENS.default)
       .describe('tokens for returned content'),
     topic: z
       .string()
@@ -286,7 +294,7 @@ export const AntVAssistantTool = {
     const startTime = Date.now();
     try {
       validateArgs(args);
-      const libraryId = context7Service.getLibraryId(args.library);
+      const libraryId = getLibraryId(args.library);
       let response: string;
       let subTaskResults: any[] = [];
       let isComplexTask = false;
@@ -300,10 +308,10 @@ export const AntVAssistantTool = {
         subTaskResults = args.subTasks;
       } else {
         const { documentation, error: docError } =
-          await context7Service.fetchLibraryDocumentation(
+          await fetchLibraryDocumentation(
             libraryId,
             args.topic,
-            args.tokens || DEFAULT_CONFIG.context7.tokens.default,
+            args.tokens || CONTEXT7_TOKENS.default,
           );
         hasDocumentation =
           documentation !== null && documentation.trim() !== '';

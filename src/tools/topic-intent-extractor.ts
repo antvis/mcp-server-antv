@@ -1,23 +1,19 @@
-import { z } from 'zod';
-import type { AntVLibrary } from '../types';
-import { Logger, LogLevel } from '../utils';
-import {
-  getLibraryConfig,
-  isValidLibrary,
-  LIBRARY_KEYWORDS_MAPPING,
-  LIBRARY_MAPPING,
-} from '../constant';
-
 /**
  * AntV Intelligent Assistant Preprocessing Tool
  *
  * 处理所有与 AntV 可视化库相关的用户查询，智能识别、解析并结构化用户需求。
  * 支持自动识别库类型、提取技术主题关键词、判断用户意图，并为后续 antv_assistant 工具准备结构化信息。
  */
-const logger = new Logger({
-  level: LogLevel.INFO,
-  prefix: 'TopicIntentExtractor',
-});
+
+import { z } from 'zod';
+import type { AntVLibrary } from '../types';
+import { logger } from '../utils';
+import {
+  getLibraryConfig,
+  isValidLibrary,
+  LIBRARY_KEYWORDS_MAPPING,
+  LIBRARY_MAPPING,
+} from '../constant';
 
 function validateArgs(args: any): void {
   if (!args.query?.trim()) throw new Error('Query content cannot be empty');

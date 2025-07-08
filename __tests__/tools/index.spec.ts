@@ -12,6 +12,7 @@ describe("Check tool schema", () => {
       inputSchema: zodToJsonSchema(inputSchema.shape),
     }).toEqual(AntVAssistant);
   });
+
   it("TopicIntentExtractor should match the expected schema", () => {
     const { run, inputSchema, ...rest } = TopicIntentExtractorTool;
     expect({

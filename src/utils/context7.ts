@@ -1,119 +1,93 @@
 /**
- * Context7 service, used to get the latest documentation context for AntV
+ * Context7 service, used to get the latest documentation context for AntV.
  */
 import type { AntVLibrary } from '../types';
-import { DEFAULT_CONFIG } from '../constant';
-import { Logger, LogLevel } from './logger';
+import { logger } from './logger';
 
-export class Context7Service {
-  private logger: Logger;
-  private baseUrl: string;
-  private timeout: number;
+const CONTEXT7_BASE_URL = 'https://context7.com/api';
+const CONTEXT7_TIMEOUT = 30000;
 
-  constructor(options: { logLevel?: LogLevel } = {}) {
-    this.baseUrl = DEFAULT_CONFIG.context7.baseUrl;
-    this.timeout = DEFAULT_CONFIG.context7.timeout;
+function getContext7Url(
+  libraryId: string,
+  topic?: string,
+  tokens?: number,
+): string {
+  const libId = libraryId.startsWith('/') ? libraryId.slice(1) : libraryId;
+  const url = new URL(`${CONTEXT7_BASE_URL}/v1/${libId}`);
 
-    this.logger = new Logger({
-      level: options.logLevel || LogLevel.INFO,
-      prefix: 'Context7Service',
+  if (tokens) {
+    url.searchParams.set('tokens', tokens.toString());
+  }
+  if (topic) {
+    url.searchParams.set('topic', topic);
+  }
+  url.searchParams.set('type', 'txt');
+
+  return url.toString();
+}
+
+async function fetchContext7Library(url: string): Promise<string | null> {
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      signal: AbortSignal.timeout(CONTEXT7_TIMEOUT),
+      headers: { 'X-Context7-Source': 'mcp-server' },
     });
-  }
 
-  /**
-   * Get the Context7 library ID corresponding to the AntV organization
-   */
-  public getLibraryId(library: AntVLibrary): string {
-    return `/antvis/${library}`;
-  }
-
-  /**
-   * Get the documentation context associated with the specified library and topic
-   */
-  public async fetchLibraryDocumentation(
-    libraryId: string,
-    topic: string,
-    tokens?: number,
-  ): Promise<{ documentation: string | null; error?: string }> {
-    try {
-      const url = this.getContext7Url(libraryId, topic, tokens);
-      const response = await this.makeContext7Request(url);
-
-      if (response) {
-        this.logger.info(
-          `Documentation fetched successfully, length: ${response.length} chars`,
-        );
-        return { documentation: response };
-      }
-
-      return { documentation: null };
-    } catch (error) {
-      this.logger.error('Failed to fetch documentation:', error);
-      return { documentation: null, error: error instanceof Error ? error.message : String(error) };
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
+
+    const text = await response.text();
+
+    if (
+      !text ||
+      text === 'No content available' ||
+      text === 'No context data available' ||
+      text.trim().length === 0
+    ) {
+      return null;
+    }
+
+    return text;
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Timeout error');
+    }
+    throw error;
   }
+}
 
-  /**
-   * Build Context7 API request URL
-   */
-  private getContext7Url(
-    libraryId: string,
-    topic?: string,
-    tokens?: number,
-  ): string {
-    const libId = libraryId.startsWith('/') ? libraryId.slice(1) : libraryId;
-    const url = new URL(`${this.baseUrl}/v1/${libId}`);
+/**
+ * Get the Context7 library ID corresponding to the AntV organization.
+ */
+export function getLibraryId(library: AntVLibrary): string {
+  return `/antvis/${library}`;
+}
 
-    if (tokens) {
-      url.searchParams.set('tokens', tokens.toString());
+
+/**
+ * Get the documentation context associated with the specified library and topic.
+ */
+export async function fetchLibraryDocumentation(
+  libraryId: string,
+  topic: string,
+  tokens?: number,
+): Promise<{ documentation: string | null; error?: string }> {
+  try {
+    const url = getContext7Url(libraryId, topic, tokens);
+    const response = await fetchContext7Library(url);
+
+    if (response) {
+      logger.info(
+        `Documentation fetched successfully, length: ${response.length} chars`,
+      );
+      return { documentation: response };
     }
-    if (topic) {
-      url.searchParams.set('topic', topic);
-    }
-    url.searchParams.set('type', 'txt');
 
-    return url.toString();
-  }
-
-  /**
-   * Send Context7 API request
-   */
-  private async makeContext7Request(url: string): Promise<string | null> {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), this.timeout);
-
-    try {
-      const response = await fetch(url, {
-        signal: controller.signal,
-        headers: { 'X-Context7-Source': 'mcp-server' },
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const text = await response.text();
-
-      if (
-        !text ||
-        text === 'No content available' ||
-        text === 'No context data available' ||
-        text.trim().length === 0
-      ) {
-        return null;
-      }
-
-      return text;
-    } catch (error) {
-      clearTimeout(timeoutId);
-
-      if (error instanceof Error && error.name === 'AbortError') {
-        throw new Error('Timeout error');
-      }
-
-      throw error;
-    }
+    return { documentation: null };
+  } catch (error) {
+    logger.error('Failed to fetch documentation:', error);
+    return { documentation: null, error: error instanceof Error ? error.message : String(error) };
   }
 }

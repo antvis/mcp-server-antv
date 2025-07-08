@@ -1,9 +1,9 @@
 #!/usr/bin/env node
+import process from "node:process";
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { Logger, LogLevel } from './utils';
+import { logger } from './utils';
 import { AntVAssistantTool, TopicIntentExtractorTool } from './tools';
-import { type AntVAssistantArgs } from './types'
 
 /**
  * AntV MCP Server:
@@ -14,7 +14,6 @@ import { type AntVAssistantArgs } from './types'
  */
 class AntVMCPServer {
   private readonly server: McpServer;
-  private readonly logger: Logger;
 
   constructor() {
     this.server = new McpServer({
@@ -28,34 +27,27 @@ class AntVMCPServer {
         name,
         description,
         inputSchema.shape,
-        async (args: { [x: string]: any }) => {
-          return (await run(args as AntVAssistantArgs)) as any;
-        },
+        run as any,
       );
     });
 
-    this.logger = new Logger({
-      level: LogLevel.INFO,
-      prefix: 'MCPServerAntV',
-    });
-
-    this.logger.info('AntV MCP Server initialized successfully!');
+    logger.info('AntV MCP Server initialized successfully!');
   }
 
   async runWithStdio(): Promise<void> {
     try {
       const transport = new StdioServerTransport();
       await this.server.connect(transport);
-      this.logger.info('AntV MCP Server started with stdio transport!');
+      logger.info('AntV MCP Server started with stdio transport!');
     } catch (error) {
-      this.logger.error('Failed to start server with stdio transport:', error);
+      logger.error('Failed to start server with stdio transport:', error);
       throw error;
     }
   }
 
   async shutdown(): Promise<void> {
-    this.logger.info('Shutting down AntV MCP Server...');
-    this.logger.info('AntV MCP Server shutdown complete');
+    logger.info('Shutting down AntV MCP Server...');
+    logger.info('AntV MCP Server shutdown complete');
   }
 }
 
