@@ -7,192 +7,120 @@
  * Supports topic extraction, intent recognition, and intelligent document retrieval
  */
 
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-  CallToolResult,
-  ErrorCode,
-  McpError,
-} from '@modelcontextprotocol/sdk/types.js';
+import { createServer } from 'http';
+import { Command } from 'commander';
 
-import { AntVAssistantTool } from './tools/antv-assistant.js';
-import { TopicIntentExtractorTool } from './tools/topic-intent-extractor.js';
 import { Logger, LogLevel } from './utils/logger.js';
 import { DEFAULT_CONFIG } from './config/index.js';
-import type { AntVAssistantArgs } from './types/index.js';
-import type { TopicIntentExtractorArgs } from './tools/topic-intent-extractor.js';
+import registryTools from './tools/index.js';
 
-/**
- * Tool registry
- */
-interface ToolRegistry {
-  [key: string]: {
-    instance: AntVAssistantTool | TopicIntentExtractorTool;
-    execute: (args: any) => Promise<any>;
-  };
-}
+const program = new Command()
+  .option('--transport <stdio|http>', 'transport type', 'stdio')
+  .option('--port <number>', 'port for HTTP transport', '3000')
+  .allowUnknownOption()
+  .parse(process.argv);
 
-/**
- * AntV MCP Server
- */
+const cliOptions = program.opts<{ transport: string; port: string }>();
+const TRANSPORT_TYPE = (cliOptions.transport || 'stdio') as 'stdio' | 'http';
+const CLI_PORT = (() => {
+  const parsed = parseInt(cliOptions.port, 10);
+  return isNaN(parsed) ? undefined : parsed;
+})();
+
 class AntVMcpServer {
-  private readonly server: Server;
-  private readonly tools: ToolRegistry;
+  private readonly server: McpServer;
   private readonly logger: Logger;
 
   constructor() {
-    this.server = new Server({
+    this.server = new McpServer({
       name: 'mcp-server-antv',
       version: '1.0.0',
+      // 不要传 tools 字段
     });
 
-    this.tools = this.initializeTools();
-
+    // 注册工具（1.x 方式）
+    // this.server.registerTool(new AntVAssistantTool());
+    // this.server.registerTool(new TopicIntentExtractorTool());
+    registryTools(this.server);
     const logLevel = LogLevel[DEFAULT_CONFIG.logger.level] || LogLevel.INFO;
     this.logger = new Logger({
       level: logLevel,
       prefix: 'McpServerAntV',
     });
 
-    this.setupRequestHandlers();
     this.logger.info('AntV MCP Server initialized successfully');
   }
 
-  /**
-   * Initialize tool registry
-   */
-  private initializeTools(): ToolRegistry {
-    const assistantTool = new AntVAssistantTool();
-    const extractorTool = new TopicIntentExtractorTool();
-
-    return {
-      antv_assistant: {
-        instance: assistantTool,
-        execute: (args: AntVAssistantArgs) => assistantTool.execute(args),
-      },
-      topic_intent_extractor: {
-        instance: extractorTool,
-        execute: (args: TopicIntentExtractorArgs) =>
-          extractorTool.execute(args),
-      },
-    };
-  }
-
-  /**
-   * Setup request handlers
-   */
-  private setupRequestHandlers(): void {
-    this.server.setRequestHandler(ListToolsRequestSchema, async () => {
-      this.logger.debug('Received list tools request');
-      return {
-        tools: Object.values(this.tools).map((tool) =>
-          tool.instance.getToolDefinition(),
-        ),
-      };
-    });
-
-    this.server.setRequestHandler(
-      CallToolRequestSchema,
-      async (request): Promise<CallToolResult> => {
-        return this.handleToolCall(
-          request.params.name,
-          request.params.arguments,
-        );
-      },
-    );
-  }
-
-  /**
-   * Handle tool calls
-   */
-  private async handleToolCall(
-    toolName: string,
-    args: Record<string, unknown> = {},
-  ): Promise<CallToolResult> {
-    this.logger.debug(`Tool call received: ${toolName}`);
-
-    try {
-      const tool = this.tools[toolName];
-      if (!tool) {
-        throw new McpError(
-          ErrorCode.MethodNotFound,
-          `Unknown tool: ${toolName}`,
-        );
-      }
-
-      const result = await tool.execute(args);
-
-      this.logger.debug(`Tool execution completed: ${toolName}`);
-
-      return this.formatToolResult(result);
-    } catch (error) {
-      this.logger.error(`Tool execution failed (${toolName}):`, error);
-      return this.formatErrorResult(error);
-    }
-  }
-
-  /**
-   * Format tool execution result
-   */
-  private formatToolResult(result: any): CallToolResult {
-    return {
-      content: result.content || [],
-      isError: result.isError || false,
-      _meta: result.metadata,
-    };
-  }
-
-  /**
-   * Format error result
-   */
-  private formatErrorResult(error: unknown): CallToolResult {
-    const errorMessage =
-      error instanceof Error ? error.message : 'Unknown error';
-
-    return {
-      content: [
-        {
-          type: 'text',
-          text: `❌ Tool execution failed: ${errorMessage}`,
-        },
-      ],
-      isError: true,
-      _meta: {
-        error: errorMessage,
-        timestamp: new Date().toISOString(),
-      },
-    };
-  }
-
-  /**
-   * Start server
-   */
-  async run(): Promise<void> {
+  async runWithStdio(): Promise<void> {
     try {
       const transport = new StdioServerTransport();
       await this.server.connect(transport);
-
       this.logger.info('AntV MCP Server started with stdio transport');
     } catch (error) {
-      this.logger.error('Failed to start server:', error);
+      this.logger.error('Failed to start server with stdio transport:', error);
       throw error;
     }
   }
 
-  /**
-   * Gracefully shutdown server
-   */
-  async shutdown(): Promise<void> {
-    this.logger.info('Shutting down AntV MCP Server...');
-
+  async runWithHttp(): Promise<void> {
     try {
-      this.logger.info('AntV MCP Server shutdown complete');
+      const port = CLI_PORT ?? 3000;
+      const httpServer = createServer(async (req, res) => {
+        const url = new URL(req.url || '', `http://${req.headers.host}`)
+          .pathname;
+
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader(
+          'Access-Control-Allow-Methods',
+          'GET,POST,OPTIONS,DELETE',
+        );
+        res.setHeader(
+          'Access-Control-Allow-Headers',
+          'Content-Type, MCP-Session-Id, mcp-session-id',
+        );
+
+        if (req.method === 'OPTIONS') {
+          res.writeHead(200);
+          res.end();
+          return;
+        }
+
+        try {
+          if (url === '/mcp') {
+            const transport = new StreamableHTTPServerTransport({
+              sessionIdGenerator: undefined,
+            });
+            await transport.handleRequest(req, res);
+          } else {
+            res.writeHead(404);
+            res.end('Not found');
+          }
+        } catch (error) {
+          this.logger.error('Error handling request:', error);
+          if (!res.headersSent) {
+            res.writeHead(500);
+            res.end('Internal Server Error');
+          }
+        }
+      });
+
+      httpServer.listen(port, () => {
+        this.logger.info(
+          `AntV MCP Server running on HTTP at http://localhost:${port}/mcp`,
+        );
+      });
     } catch (error) {
-      this.logger.error('Error during shutdown:', error);
+      this.logger.error('Failed to start server with HTTP transport:', error);
       throw error;
     }
+  }
+
+  async shutdown(): Promise<void> {
+    this.logger.info('Shutting down AntV MCP Server...');
+    this.logger.info('AntV MCP Server shutdown complete');
   }
 }
 
@@ -207,7 +135,6 @@ function setupProcessHandlers(server: AntVMcpServer): void {
       process.exit(1);
     });
   });
-
   // Unhandled promise rejections
   process.on('unhandledRejection', (reason, promise) => {
     console.error('Unhandled promise rejection:', promise, 'reason:', reason);
@@ -216,9 +143,9 @@ function setupProcessHandlers(server: AntVMcpServer): void {
     });
   });
 }
-
 /**
  * Main function
+ * Initializes and starts the AntV MCP server based on the transport type.
  */
 async function main(): Promise<void> {
   const server = new AntVMcpServer();
@@ -227,21 +154,21 @@ async function main(): Promise<void> {
   setupProcessHandlers(server);
 
   try {
-    // Start server
-    await server.run();
+    // Start server based on transport type
+    if (TRANSPORT_TYPE === 'http') {
+      await server.runWithHttp();
+    } else {
+      await server.runWithStdio();
+    }
   } catch (error) {
     console.error('Failed to start server:', error);
     process.exit(1);
-  } finally {
-    // Ensure server shutdown
-    await server.shutdown();
   }
 }
 
 // Start application
-if (import.meta.url === `file://${process.argv[1]}`) {
-  main().catch((error) => {
-    console.error('Failed to start application:', error);
-    process.exit(1);
-  });
-}
+
+main().catch((error) => {
+  console.error('Failed to start application:', error);
+  process.exit(1);
+});
