@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { AntVLibrary } from '../types';
-import { Logger, LogLevel, zodToJsonSchema } from '../utils';
+import { Logger, LogLevel } from '../utils';
 import {
   getLibraryConfig,
   isValidLibrary,
@@ -296,7 +296,7 @@ export const TopicIntentExtractorTool = {
   - **Task Complexity Handling**: Detects complex tasks and decomposes them into manageable subtasks.
   - **Seamless Integration**: Prepares structured data for the antv_assistant tool to provide precise solutions.
   - **Full Scenario Support**: Covers everything from basic learning to advanced implementation.`,
-  inputSchema: zodToJsonSchema({
+  inputSchema: z.object({
     query: z
       .string()
       .min(1, 'Query content cannot be empty')

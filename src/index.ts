@@ -27,7 +27,7 @@ class AntVMCPServer {
       this.server.tool(
         name,
         description,
-        inputSchema,
+        inputSchema.shape,
         async (args: { [x: string]: any }) => {
           return (await run(args as AntVAssistantArgs)) as any;
         },

@@ -1,13 +1,11 @@
-import type { AntVAssistantArgs } from '../types.js';
-import { Context7Service } from '../utils/context7.js';
-import { Logger, LogLevel } from '../utils/logger.js';
+import { z } from 'zod';
+import type { AntVAssistantArgs } from '../types';
+import { Logger, LogLevel, Context7Service } from '../utils';
 import {
   getLibraryConfig,
   isValidLibrary,
   DEFAULT_CONFIG,
-} from '../constant.js';
-import { z } from 'zod';
-import { zodToJsonSchema } from '../utils/schema.js';
+} from '../constant';
 
 /**
  * AntV Professional Documentation Assistant
@@ -247,7 +245,7 @@ export const AntVAssistantTool = {
     - Simple queries requiring no decomposition (e.g., "How to update the legend position?").
   - **Follow-up Actions**: Users ask optimization or feature-related follow-ups (e.g., "How to add animations?").
   - **Natural Continuation**: Issues or conversations extending naturally without explicit tool calls.`,
-  inputSchema: zodToJsonSchema({
+  inputSchema: z.object({
     library: z
       .enum(['g2', 'g6', 'l7', 'x6', 'f2', 's2'])
       .describe(
