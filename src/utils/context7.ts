@@ -1,10 +1,9 @@
 /**
  * Context7 service, used to get the latest documentation context for AntV
  */
-
-import type { AntVLibrary } from '../types/index.js';
-import { DEFAULT_CONFIG } from '../config/index.js';
-import { Logger, LogLevel } from '../utils/logger.js';
+import type { AntVLibrary } from '../types';
+import { DEFAULT_CONFIG } from '../constant';
+import { Logger, LogLevel } from './logger';
 
 export class Context7Service {
   private logger: Logger;

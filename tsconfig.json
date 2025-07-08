@@ -1,19 +1,24 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "Node16",
-    "moduleResolution": "Node16",
-    "outDir": "./dist",
+    "target": "ES6",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "outDir": "./build",
     "rootDir": "./src",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
-    "allowSyntheticDefaultImports": true
+    "declaration": true
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "**/*.test.ts"]
+  "exclude": ["node_modules"],
+  "tsc-alias": {
+    "verbose": false,
+    "resolveFullPaths": true,
+    "fileExtensions": {
+      "inputGlob": "{js,jsx,mjs}",
+      "outputCheck": ["js", "json", "jsx", "mjs"]
+    }
+  }
 }

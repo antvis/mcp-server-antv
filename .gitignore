@@ -1,20 +1,33 @@
-# Finder (MacOS) folder config
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+yarn.lock
+
+# Sys
 .DS_Store
-package-lock.json
+.idea
 
-# Cursor (VSCode) config
-.history
-.lh
+# Node
+node_modules/
 
-# VSCode config
-.vscode
-
-# Node modules
-node_modules
-
-# Dist directory
+# Build
 dist
+lib
+esm
+build
 
-# Environment variables
-.env
-.node
+# Test
+coverage
+
+# Editor
+.vscode
+.histor
+
+# Package
+package-lock.json
+pnpm-lock.yaml
+bun.lock

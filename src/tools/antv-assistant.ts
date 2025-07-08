@@ -1,12 +1,11 @@
-import type { AntVAssistantArgs } from '../types/index.js';
-import { Context7Service } from '../services/context7.js';
-import { Logger, LogLevel } from '../utils/logger.js';
+import { z } from 'zod';
+import type { AntVAssistantArgs } from '../types';
+import { Logger, LogLevel, Context7Service } from '../utils';
 import {
   getLibraryConfig,
   isValidLibrary,
   DEFAULT_CONFIG,
-} from '../config/index.js';
-import { z } from 'zod';
+} from '../constant';
 
 /**
  * AntV Professional Documentation Assistant

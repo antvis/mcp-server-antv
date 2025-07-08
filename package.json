@@ -1,44 +1,60 @@
 {
   "name": "mcp-server-antv",
-  "version": "1.0.0",
-  "description": "MCP Server for AntV visualization libraries - provides documentation context and examples",
-  "main": "dist/index.js",
-  "type": "module",
+  "version": "0.1.0",
+  "description": "MCP Server for AntV visualization libraries development, which provides documentation context and examples for visualization developers.",
+  "main": "build/index.js",
   "scripts": {
-    "build": "tsc",
-    "start": "node dist/index.js",
-    "dev": "tsc --watch",
-    "clean": "rm -rf dist",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
     "lint": "prettier --check . && tsc --noEmit",
-    "inspector": "tsc && npx @modelcontextprotocol/inspector dist/index.js"
+    "fix": "prettier --write .",
+    "prebuild": "rm -rf build/*",
+    "build": "tsc && tsc-alias -p tsconfig.json",
+    "postbuild": "chmod +x build/index.js",
+    "start": "npm run build && npx @modelcontextprotocol/inspector node build/index.js",
+    "prepare": "npm run build",
+    "prepublishOnly": "npm run build",
+    "test": "vitest"
   },
   "keywords": [
     "mcp",
+    "mcp-server",
     "antv",
     "visualization",
     "documentation",
-    "context7"
+    "context7",
+    "ai-development"
   ],
-  "author": "AntV Community",
-  "license": "MIT",
+  "bin": {
+    "mcp-server-antv": "./build/index.js"
+  },
+  "files": [
+    "build",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
   "dependencies": {
-    "@modelcontextprotocol/inspector": "^0.15.0",
     "@modelcontextprotocol/sdk": "^1.12.0",
-    "zod": "^3.25.75"
+    "zod": "^3.25.75" 
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
+    "@modelcontextprotocol/inspector": "^0.15.0",
+    "@types/node": "^22.15.21",
+    "prettier": "^3.0.0",
+    "tsc-alias": "^1.8.16",
     "typescript": "^5.0.0",
-    "tsx": "^4.0.0",
-    "prettier": "^3.0.0"
-  },
-  "bin": {
-    "mcp-server-antv": "./dist/index.js"
+    "vitest": "^3.1.4",
+    "zod-to-json-schema": "^3.24.5"
   },
   "engines": {
     "node": ">=18.0.0"
   },
-  "repository": "git@code.alipay.com:datavis/mcp-server-antv.git"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/antvis/mcp-server-antv"
+  },
+  "author": {
+    "name": "AntV",
+    "url": "https://antv.antgroup.com/"
+  }
 }
