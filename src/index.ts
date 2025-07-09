@@ -2,7 +2,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { logger, validateSchema } from './utils';
-import { AntVAssistantTool, TopicIntentExtractorTool } from './tools';
+import { QueryAntVDocumentTool, ExtractAntVTopicTool } from './tools';
 
 class AntVMCPServer {
   private readonly server: McpServer;
@@ -14,21 +14,18 @@ class AntVMCPServer {
     });
 
     // Register tools with validation
-    [TopicIntentExtractorTool, AntVAssistantTool].forEach((tool) => {
+    [ExtractAntVTopicTool, QueryAntVDocumentTool].forEach((tool) => {
       const { name, description, inputSchema, run } = tool;
-      this.server.tool(
-        name,
-        description,
-        inputSchema.shape,
-        (async (args: any) => {
-          const { success, errorMessage } = validateSchema(inputSchema, args);
-          if (success) {
-            return await run(args);
-          } else {
-            throw new Error(errorMessage);
-          }
-        }) as any,
-      );
+      this.server.tool(name, description, inputSchema.shape, (async (
+        args: any,
+      ) => {
+        const { success, errorMessage } = validateSchema(inputSchema, args);
+        if (success) {
+          return await run(args);
+        } else {
+          throw new Error(errorMessage);
+        }
+      }) as any);
     });
 
     logger.info('AntV MCP Server initialized successfully!');

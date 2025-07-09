@@ -1,2 +1,2 @@
-export { AntVAssistantTool } from './antv-assistant';
-export { TopicIntentExtractorTool } from './topic-intent-extractor';
+export { QueryAntVDocumentTool } from './query_antv_document';
+export { ExtractAntVTopicTool } from './extract_antv_topic';

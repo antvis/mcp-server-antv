@@ -10,9 +10,13 @@
 import { z } from 'zod';
 import type { AntVLibrary } from '../types';
 import { logger, getLibraryId, fetchLibraryDocumentation } from '../utils';
-import { getLibraryConfig, ANTV_LIBRARY_META, CONTEXT7_TOKENS } from '../constant';
+import {
+  getLibraryConfig,
+  ANTV_LIBRARY_META,
+  CONTEXT7_TOKENS,
+} from '../constant';
 
-type AntVAssistantArgs = {
+type QueryAntVDocumentArgs = {
   library: AntVLibrary;
   query: string;
   tokens: number;
@@ -24,7 +28,7 @@ type AntVAssistantArgs = {
   }>;
 };
 
-const AntVAssistantInputSchema = z.object({
+const QueryAntVDocumentInputSchema = z.object({
   library: z
     .enum(
       Object.keys(ANTV_LIBRARY_META) as [
@@ -57,20 +61,28 @@ const AntVAssistantInputSchema = z.object({
     .min(1, 'Topic cannot be empty')
     .trim()
     .describe(
-      'Technical topic keywords (comma-separated). Provided by `topic_intent_extractor` or directly extracted from simple questions.',
+      'Technical topic keywords (comma-separated). Provided by `extract_antv_topic` or directly extracted from simple questions.',
     ),
   intent: z
     .string()
     .min(1, 'Intent cannot be empty')
     .trim()
     .describe(
-      'Extracted user intent, provided by topic_intent_extractor tool or directly extracted from simple questions.',
+      'Extracted user intent, provided by extract_antv_topic tool or directly extracted from simple questions.',
     ),
   subTasks: z
     .array(
       z.object({
-        query: z.string().min(1, 'Subtask query cannot be empty').trim().describe('Subtask query'),
-        topic: z.string().min(1, 'Subtask topic cannot be empty').trim().describe('Subtask topic'),
+        query: z
+          .string()
+          .min(1, 'Subtask query cannot be empty')
+          .trim()
+          .describe('Subtask query'),
+        topic: z
+          .string()
+          .min(1, 'Subtask topic cannot be empty')
+          .trim()
+          .describe('Subtask topic'),
       }),
     )
     .describe(
@@ -80,7 +92,7 @@ const AntVAssistantInputSchema = z.object({
 });
 
 async function handleComplexTaskWithDocCheck(
-  args: AntVAssistantArgs,
+  args: QueryAntVDocumentArgs,
   libraryId: string,
   subTasks: Array<{ query: string; topic: string }>,
 ): Promise<{ response: string; hasDocumentation: boolean }> {
@@ -145,7 +157,7 @@ async function handleComplexTaskWithDocCheck(
 }
 
 function generateComplexTaskSummary(
-  args: AntVAssistantArgs,
+  args: QueryAntVDocumentArgs,
   subTaskResults: Array<{
     task: any;
     documentation: string | null;
@@ -172,7 +184,7 @@ function generateComplexTaskSummary(
 }
 
 function generateResponse(
-  args: AntVAssistantArgs,
+  args: QueryAntVDocumentArgs,
   context: string | null,
   errorMsg?: string | undefined,
 ): string {
@@ -265,15 +277,15 @@ function generateFollowUpGuidance(): string {
 ## 🔄 Important Notice
 
 **For subsequent AntV queries:**
-- **MANDATORY**: Always use \`antv_assistant\` tool for ANY AntV-related query (including simple modifications)
-- **For new questions**: Use \`topic_intent_extractor\` first, then \`antv_assistant\`
+- **MANDATORY**: Always use \`query_antv_document\` tool for ANY AntV-related query (including simple modifications)
+- **For new questions**: Use \`extract_antv_topic\` first, then \`query_antv_document\`
 - **Never** provide AntV solutions without querying official documentation through tools
 
 `;
 }
 
-export const AntVAssistantTool = {
-  name: 'antv_assistant',
+export const QueryAntVDocumentTool = {
+  name: 'query_antv_document',
   description: `AntV Context Retrieval Assistant - Fetches relevant documentation, code examples, and best practices from official AntV resources. Supports ${Object.keys(ANTV_LIBRARY_META).join(', ')} libraries, and handles subtasks iterative queries.
 
 **MANDATORY: Must be called for ANY AntV-related query (${Object.keys(ANTV_LIBRARY_META).join(', ')}), regardless of task complexity. No exceptions for simple tasks.**
@@ -284,8 +296,8 @@ When to use this tool:
 - **Learning & Best Practices**: To explore official documentation, code examples, design patterns, or advanced features.
 - **Complex Task Handling**: For multi-step tasks requiring subtask decomposition (e.g., "Build a dashboard with interactive charts").
 - **Simple modifications**: Even basic changes like "Change the chart's color" or "Update legend position" in AntV context.`,
-  inputSchema: AntVAssistantInputSchema,
-  async run(args: AntVAssistantArgs) {
+  inputSchema: QueryAntVDocumentInputSchema,
+  async run(args: QueryAntVDocumentArgs) {
     const startTime = Date.now();
     try {
       const libraryId = getLibraryId(args.library);
@@ -296,21 +308,13 @@ When to use this tool:
       if (args.subTasks && args.subTasks.length > 0) {
         isComplexTask = true;
         const { response: taskResponse, hasDocumentation: taskHasDoc } =
-          await handleComplexTaskWithDocCheck(
-            args,
-            libraryId,
-            args.subTasks,
-          );
+          await handleComplexTaskWithDocCheck(args, libraryId, args.subTasks);
         response = taskResponse;
         hasDocumentation = taskHasDoc;
         subTaskResults = args.subTasks;
       } else {
         const { documentation, error: docError } =
-          await fetchLibraryDocumentation(
-            libraryId,
-            args.topic,
-            args.tokens,
-          );
+          await fetchLibraryDocumentation(libraryId, args.topic, args.tokens);
         hasDocumentation =
           documentation !== null && documentation.trim() !== '';
         response = generateResponse(args, documentation, docError);

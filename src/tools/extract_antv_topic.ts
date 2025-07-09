@@ -2,7 +2,7 @@
  * AntV Intelligent Assistant Preprocessing Tool
  *
  * 处理所有与 AntV 可视化库相关的用户查询，智能识别、解析并结构化用户需求。
- * 支持自动识别库类型、提取技术主题关键词、判断用户意图，并为后续 antv_assistant 工具准备结构化信息。
+ * 支持自动识别库类型、提取技术主题关键词、判断用户意图，并为后续 query_antv_document 工具准备结构化信息。
  */
 
 import { z } from 'zod';
@@ -14,7 +14,7 @@ import {
   ANTV_LIBRARY_META,
 } from '../constant';
 
-const TopicIntentExtractorInputSchema = z.object({
+const ExtractAntVTopicInputSchema = z.object({
   query: z
     .string()
     .min(1, 'Query content cannot be empty')
@@ -44,15 +44,13 @@ const TopicIntentExtractorInputSchema = z.object({
     ),
 });
 
-interface TopicIntentExtractorArgs {
+interface ExtractAntVTopicArgs {
   query: string;
   library?: AntVLibrary;
   maxTopics: number;
 }
 
-function generateExtractionPrompt(
-  args: TopicIntentExtractorArgs,
-): string {
+function generateExtractionPrompt(args: ExtractAntVTopicArgs): string {
   const libraryContext = args.library
     ? getLibraryConfig(args.library)
     : undefined;
@@ -105,11 +103,11 @@ ${examplesSection}
 Now please begin ${isLibrarySpecified ? 'extraction' : 'the detection and extraction process'}:
 
 ## Important Notice
-**MANDATORY NEXT STEP**: After completing this task, immediately call the \`antv_assistant\` tool with the extracted parameters.
+**MANDATORY NEXT STEP**: After completing this task, immediately call the \`query_antv_document\` tool with the extracted parameters.
 
 **Requirements:**
-- Always use extracted library, topic, intent parameters with \`antv_assistant\` tool
-- Never skip \`antv_assistant\` tool call and answer directly
+- Always use extracted library, topic, intent parameters with \`query_antv_document\` tool
+- Never skip \`query_antv_document\` tool call and answer directly
 - For complex tasks: pass subTasks parameter; for simple tasks: use basic parameters`;
 }
 
@@ -208,7 +206,7 @@ If determined to be a complex task, decompose into 2-4 subtasks, each subtask sh
 - Be arranged in logical order (basic → advanced)
 - Subtask topics must be clear, concise, and follow the format requirements above
 
-**Note**: For complex tasks, provide the decomposed subtask list to the antv_assistant tool for one-time processing.`;
+**Note**: For complex tasks, provide the decomposed subtask list to the query_antv_document tool for one-time processing.`;
 }
 
 function generateOutputFormatSection(): string {
@@ -300,12 +298,12 @@ Output:
 \`\`\``;
 }
 
-export const TopicIntentExtractorTool = {
-  name: 'topic_intent_extractor',
+export const ExtractAntVTopicTool = {
+  name: 'extract_antv_topic',
   description: `AntV Intelligent Assistant Preprocessing Tool - Specifically designed to handle any user queries related to AntV visualization libraries.
   This tool is the first step in processing AntV technology stack issues, responsible for intelligently identifying, parsing, and structuring user visualization requirements.
 
-**MANDATORY: Must be called for ANY new AntV-related queries, including simple questions. Always precedes antv_assistant tool.**
+**MANDATORY: Must be called for ANY new AntV-related queries, including simple questions. Always precedes query_antv_document tool.**
 
 When to use this tool:
 - **AntV-related queries**: Questions about ${Object.keys(ANTV_LIBRARY_META).join('/')} libraries.
@@ -317,9 +315,9 @@ Key features:
 - **Smart Library Detection**: Scans installed AntV libraries and recommends the best fit based on query and project dependencies.
 - **Topic & Intent Extraction**: Intelligently extracts technical topics and determines user intent (learn/implement/solve).
 - **Task Complexity Handling**: Detects complex tasks and decomposes them into manageable subtasks.
-- **Seamless Integration**: Prepares structured data for the antv_assistant tool to provide precise solutions.`,
-  inputSchema: TopicIntentExtractorInputSchema,
-  async run(args: TopicIntentExtractorArgs) {
+- **Seamless Integration**: Prepares structured data for the query_antv_document tool to provide precise solutions.`,
+  inputSchema: ExtractAntVTopicInputSchema,
+  async run(args: ExtractAntVTopicArgs) {
     const startTime = Date.now();
     try {
       const extractionPrompt = generateExtractionPrompt(args);
@@ -338,7 +336,7 @@ Key features:
           library: args.library || 'g2',
           maxTopics,
           promptGenerated: true,
-          next_tools: ['antv_assistant'],
+          next_tools: ['query_antv_document'],
           isComplexTask: false, // Will be determined and filled by LLM
           subTasks: [], // If complex task, will be filled with subtasks by LLM
           processingTime,
@@ -374,7 +372,7 @@ Key features:
           library: fallbackLibrary,
           maxTopics: fallbackMaxTopics,
           promptGenerated: false,
-          next_tools: ['antv_assistant'],
+          next_tools: ['query_antv_document'],
           isComplexTask: false,
           subTasks: [],
           processingTime,

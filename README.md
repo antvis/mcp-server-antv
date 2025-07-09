@@ -9,8 +9,8 @@
 
 - ✅ **AntV 5.x Compatibility**: Leverages the latest APIs for performance and modularity.
 - 🧩 **Multi-Library Support**: G2 (2D charts), G6 (graph/networks), and F2 (mobile charts).
-- 🔍 **Smart Intent Extraction**: Detects library usage and task complexity via `topic_intent_extractor`.
-- 📚 **Contextual Documentation**: Fetches relevant AntV docs and code snippets with `antv_assistant`.
+- 🔍 **Smart Intent Extraction**: Detects library usage and task complexity via `extract_antv_topic`.
+- 📚 **Contextual Documentation**: Fetches relevant AntV docs and code snippets with `query_antv_document`.
 
 ## 🛠️ Quick Start
 
@@ -78,10 +78,10 @@ code --add-mcp "{\"name\":\"mcp-server-antv\",\"command\": \"npx\",\"args\": [\"
 
 ## 🧰 Tools Overview
 
-| Tool                     | Functionality                                                               |
-| ------------------------ | --------------------------------------------------------------------------- |
-| `topic_intent_extractor` | Parses user intent, detects library (G2/G6/F2), and infers task complexity. |
-| `antv_assistant`         | fetch latest documentation and code examples                                |
+| Tool                  | Functionality                                                               |
+| --------------------- | --------------------------------------------------------------------------- |
+| `extract_antv_topic`  | Parses user intent, detects library (G2/G6/F2), and infers task complexity. |
+| `query_antv_document` | fetch latest documentation and code examples                                |
 
 ## 🔨 Contributing
 

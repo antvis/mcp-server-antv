@@ -1,23 +1,23 @@
-import { describe, expect, it } from "vitest";
-import { default as AntVAssistant } from './antv-assistant.json';
-import { default as TopicIntentExtractor } from './topic-intent-extractor.json';
-import { AntVAssistantTool, TopicIntentExtractorTool } from '../../src/tools';
-import { zodToJsonSchema } from "../schema";
+import { describe, expect, it } from 'vitest';
+import { default as QueryAntVDocument } from './query_antv_document.json';
+import { default as ExtractAntVTopic } from './extract_antv_topic.json';
+import { QueryAntVDocumentTool, ExtractAntVTopicTool } from '../../src/tools';
+import { zodToJsonSchema } from '../schema';
 
-describe("Check tool schema", () => {
-  it("AntVAssistant should match the expected schema", () => {
-    const { run, inputSchema, ...rest } = AntVAssistantTool;
+describe('Check tool schema', () => {
+  it('QueryAntVDocument should match the expected schema', () => {
+    const { run, inputSchema, ...rest } = QueryAntVDocumentTool;
     expect({
       ...rest,
       inputSchema: zodToJsonSchema(inputSchema.shape),
-    }).toEqual(AntVAssistant);
+    }).toEqual(QueryAntVDocument);
   });
 
-  it("TopicIntentExtractor should match the expected schema", () => {
-    const { run, inputSchema, ...rest } = TopicIntentExtractorTool;
+  it('ExtractAntVTopic should match the expected schema', () => {
+    const { run, inputSchema, ...rest } = ExtractAntVTopicTool;
     expect({
       ...rest,
       inputSchema: zodToJsonSchema(inputSchema.shape),
-    }).toEqual(TopicIntentExtractor);
+    }).toEqual(ExtractAntVTopic);
   });
 });
