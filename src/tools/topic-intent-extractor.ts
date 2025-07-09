@@ -138,8 +138,7 @@ function generateLibrarySpecifiedSection(libraryContext: {
   name: string;
 }): string {
   return `## Phase 1: Library Context
-**Target Library**: ${libraryContext.name} (${libraryContext.id})
-**Components and Terminology**: ${getLibraryKeywords(libraryContext.id)}`;
+  **Target Library**: ${libraryContext.name} (${libraryContext.id})`;
 }
 
 function generateLibraryDetectionSection(
