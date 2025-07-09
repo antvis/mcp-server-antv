@@ -79,26 +79,6 @@ const AntVAssistantInputSchema = z.object({
     .optional(),
 });
 
-// Use the same schema for both input and runtime validation
-const AntVAssistantArgsSchema = AntVAssistantInputSchema;
-
-function validateArgs(args: { [x: string]: any }): AntVAssistantArgs {
-  const result = AntVAssistantArgsSchema.safeParse(args);
-
-  if (!result.success) {
-    const errorMessages = result.error.issues
-      .map((issue) => {
-        const path = issue.path.length > 0 ? `${issue.path.join('.')}: ` : '';
-        return `${path}${issue.message}`;
-      })
-      .join('; ');
-
-    throw new Error(`Validation failed: ${errorMessages}`);
-  }
-
-  return result.data;
-}
-
 async function handleComplexTaskWithDocCheck(
   args: AntVAssistantArgs,
   libraryId: string,
@@ -308,41 +288,40 @@ When to use this tool:
   async run(args: AntVAssistantArgs) {
     const startTime = Date.now();
     try {
-      const validatedArgs = validateArgs(args);
-      const libraryId = getLibraryId(validatedArgs.library);
+      const libraryId = getLibraryId(args.library);
       let response: string;
       let subTaskResults: any[] = [];
       let isComplexTask = false;
       let hasDocumentation = false;
-      if (validatedArgs.subTasks && validatedArgs.subTasks.length > 0) {
+      if (args.subTasks && args.subTasks.length > 0) {
         isComplexTask = true;
         const { response: taskResponse, hasDocumentation: taskHasDoc } =
           await handleComplexTaskWithDocCheck(
-            validatedArgs,
+            args,
             libraryId,
-            validatedArgs.subTasks,
+            args.subTasks,
           );
         response = taskResponse;
         hasDocumentation = taskHasDoc;
-        subTaskResults = validatedArgs.subTasks;
+        subTaskResults = args.subTasks;
       } else {
         const { documentation, error: docError } =
           await fetchLibraryDocumentation(
             libraryId,
-            validatedArgs.topic,
-            validatedArgs.tokens,
+            args.topic,
+            args.tokens,
           );
         hasDocumentation =
           documentation !== null && documentation.trim() !== '';
-        response = generateResponse(validatedArgs, documentation, docError);
+        response = generateResponse(args, documentation, docError);
       }
       const processingTime = Date.now() - startTime;
       return {
         content: [{ type: 'text', text: response }],
         _meta: {
-          topic: validatedArgs.topic.split(',').map((t) => t.trim()),
-          intent: validatedArgs.intent,
-          library: validatedArgs.library,
+          topic: args.topic.split(',').map((t: string) => t.trim()),
+          intent: args.intent,
+          library: args.library,
           hasDocumentation,
           processingTime,
         },

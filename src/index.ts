@@ -1,17 +1,9 @@
 #!/usr/bin/env node
-import process from "node:process";
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { logger } from './utils';
+import { logger, validateSchema } from './utils';
 import { AntVAssistantTool, TopicIntentExtractorTool } from './tools';
 
-/**
- * AntV MCP Server:
- *
- * MCP server providing documentation query and Q&A services for AntV visualization libraries.
- * Supports topic extraction, intent recognition, and intelligent document retrieval.
- * Integrates with AntV Assistant for enhanced user interaction.
- */
 class AntVMCPServer {
   private readonly server: McpServer;
 
@@ -21,13 +13,21 @@ class AntVMCPServer {
       version: '0.1.0',
     });
 
+    // Register tools with validation
     [TopicIntentExtractorTool, AntVAssistantTool].forEach((tool) => {
       const { name, description, inputSchema, run } = tool;
       this.server.tool(
         name,
         description,
         inputSchema.shape,
-        run as any,
+        (async (args: any) => {
+          const { success, errorMessage } = validateSchema(inputSchema, args);
+          if (success) {
+            return await run(args);
+          } else {
+            throw new Error(errorMessage);
+          }
+        }) as any,
       );
     });
 

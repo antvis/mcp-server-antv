@@ -44,34 +44,14 @@ const TopicIntentExtractorInputSchema = z.object({
     ),
 });
 
-// Use the same schema for both input and runtime validation
-const TopicIntentExtractorArgsSchema = TopicIntentExtractorInputSchema;
-
-interface ValidatedTopicIntentExtractorArgs {
+interface TopicIntentExtractorArgs {
   query: string;
   library?: AntVLibrary;
   maxTopics: number;
 }
 
-function validateArgs(args: any): ValidatedTopicIntentExtractorArgs {
-  const result = TopicIntentExtractorArgsSchema.safeParse(args);
-
-  if (!result.success) {
-    const errorMessages = result.error.issues
-      .map((issue) => {
-        const path = issue.path.length > 0 ? `${issue.path.join('.')}: ` : '';
-        return `${path}${issue.message}`;
-      })
-      .join('; ');
-
-    throw new Error(`Validation failed: ${errorMessages}`);
-  }
-
-  return result.data;
-}
-
 function generateExtractionPrompt(
-  args: ValidatedTopicIntentExtractorArgs,
+  args: TopicIntentExtractorArgs,
 ): string {
   const libraryContext = args.library
     ? getLibraryConfig(args.library)
@@ -339,12 +319,11 @@ Key features:
 - **Task Complexity Handling**: Detects complex tasks and decomposes them into manageable subtasks.
 - **Seamless Integration**: Prepares structured data for the antv_assistant tool to provide precise solutions.`,
   inputSchema: TopicIntentExtractorInputSchema,
-  async run(args: any) {
+  async run(args: TopicIntentExtractorArgs) {
     const startTime = Date.now();
     try {
-      const validatedArgs = validateArgs(args);
-      const extractionPrompt = generateExtractionPrompt(validatedArgs);
-      const maxTopics = validatedArgs.maxTopics;
+      const extractionPrompt = generateExtractionPrompt(args);
+      const maxTopics = args.maxTopics;
       const processingTime = Date.now() - startTime;
       return {
         content: [
@@ -356,7 +335,7 @@ Key features:
         _meta: {
           topic: '', // Will be filled by LLM
           intent: '', // Will be filled by LLM
-          library: validatedArgs.library || 'g2',
+          library: args.library || 'g2',
           maxTopics,
           promptGenerated: true,
           next_tools: ['antv_assistant'],
