@@ -68,7 +68,9 @@ export function getLibraryConfig(library: AntVLibrary) {
 }
 
 export function getLibraryDescription(library: AntVLibrary): string {
-  return ANTV_LIBRARY_META[library]?.description || 'AntV visualization library';
+  return (
+    ANTV_LIBRARY_META[library]?.description || 'AntV visualization library'
+  );
 }
 
 export function getLibraryKeywords(library: AntVLibrary) {

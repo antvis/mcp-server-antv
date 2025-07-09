@@ -29,7 +29,7 @@ function getContext7Url(
 async function fetchContext7Library(url: string): Promise<string | null> {
   try {
     const response = await fetch(url, {
-      method: "GET",
+      method: 'GET',
       signal: AbortSignal.timeout(CONTEXT7_TIMEOUT),
       headers: { 'X-Context7-Source': 'mcp-server' },
     });
@@ -65,7 +65,6 @@ export function getLibraryId(library: AntVLibrary): string {
   return `/antvis/${library}`;
 }
 
-
 /**
  * Get the documentation context associated with the specified library and topic.
  */
@@ -88,6 +87,9 @@ export async function fetchLibraryDocumentation(
     return { documentation: null };
   } catch (error) {
     logger.error('Failed to fetch documentation:', error);
-    return { documentation: null, error: error instanceof Error ? error.message : String(error) };
+    return {
+      documentation: null,
+      error: error instanceof Error ? error.message : String(error),
+    };
   }
 }

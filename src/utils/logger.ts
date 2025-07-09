@@ -1,4 +1,4 @@
-import { getEnvLoggerLevel } from "./env";
+import { getEnvLoggerLevel } from './env';
 
 export enum LogLevel {
   DEBUG = 0,
@@ -17,9 +17,9 @@ export class Logger {
   private enableColors: boolean;
 
   constructor(level = LogLevel.INFO, prefix = '', enableColors = true) {
-    this.level = level
-    this.prefix = prefix
-    this.enableColors = enableColors
+    this.level = level;
+    this.prefix = prefix;
+    this.enableColors = enableColors;
   }
 
   private formatMessage(level: string, message: string): string {
@@ -95,4 +95,8 @@ export class Logger {
  * Logger instance for the MCP Server AntV.
  * Uses the environment variable `LOGGER_LEVEL` to set the log level.
  */
-export const logger = new Logger(getEnvLoggerLevel() as unknown as LogLevel, 'MCPServerAntV', true);
+export const logger = new Logger(
+  getEnvLoggerLevel() as unknown as LogLevel,
+  'MCPServerAntV',
+  true,
+);
