@@ -1,9 +1,10 @@
 # MCP Server AntV ![](https://badge.mcpx.dev?type=server 'MCP Server')[![npm Version](https://img.shields.io/npm/v/@antv/mcp-server-antv.svg)](https://www.npmjs.com/package/@antv/mcp-server-antv) [![smithery badge](https://smithery.ai/badge/@antvis/mcp-server-antv)](https://smithery.ai/server/@antvis/mcp-server-antv) [![npm License](https://img.shields.io/npm/l/@antv/mcp-server-antv.svg)](https://www.npmjs.com/package/@antv/mcp-server-antv)
 
 > A **Model Context Protocol (MCP)** server designed for AI development and QA that provides **AntV** documentation context and code examples using the latest APIs.  
-> Supports **G2**, **G6**, and **F2** libraries for declarative visualization workflows, with **S2**, **X6**, and **L7** on the way～.
 
----
+<img width="768" alt="mcp-server-antv Technical Architecture" src="https://mdn.alipayobjects.com/huamei_qa8qxu/afts/img/A*WHSOR7L8U0YAAAAATjAAAAgAemJ7AQ/fmt.webp" />
+
+Supports **G2**, **G6**, and **F2** libraries for declarative visualization workflows, and **S2**, **X6**, and **L7** on the way～
 
 ## ✨ Features
 
@@ -17,7 +18,7 @@
 ### Requirements
 
 - Node.js >= v18.0.0
-- Cursor, VSCode, [Cline](https://cline.bot/mcp-marketplace), Claude Desktop or another MCP Client
+- Cursor, VSCode, [Cline](https://cline.bot/mcp-marketplace), Claude Desktop or another MCP Client.
 
 ### Connect to Cursor
 
@@ -74,14 +75,14 @@ code --add-mcp "{\"name\":\"mcp-server-antv\",\"command\": \"npx\",\"args\": [\"
 
 ## 🧪 Example Workflow
 
-每个技术栈来一个演示gif
+An example workflow.
 
 ## 🧰 Tools Overview
 
 | Tool                  | Functionality                                                               |
 | --------------------- | --------------------------------------------------------------------------- |
-| `extract_antv_topic`  | Parses user intent, detects library (G2/G6/F2), and infers task complexity. |
-| `query_antv_document` | fetch latest documentation and code examples                                |
+| `extract_antv_topic`  | Extract user intent, detects library (G2/G6/F2), and infers task complexity. |
+| `query_antv_document` | fetch latest documentation and code examples with context7                   |
 
 ## 🔨 Contributing
 
@@ -112,8 +113,4 @@ npm run start
 
 ## 📄 License
 
-⭐ Why Choose MCP Server AntV?
-
-- ✅ Open, and Free: MCP Server AntV is open-source and completely free to use. It doesn't collect personal information or store queries.
-- 🧠 LLM Integration: Enhance code generation with AI-powered context retrieval.
-- 🧩 Modular Design: Currently supports G2 (charts), G6 (graphs), and F2 (mobile), with plans to expand to more AntV libraries in the future.
+MIT@[AntV](https://github.com/antvis).
