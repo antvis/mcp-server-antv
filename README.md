@@ -22,7 +22,7 @@ Supports **G2**, **G6**, and **F2** libraries for declarative visualization work
 
 ### Connect to Cursor
 
-[![Install MCP Server](https://cursor.com/deeplink/mcp-install-light.svg)](https://cursor.com/install-mcp?name=mcp-server-antv&config=JTdCJTIyY29tbWFuZCUyMiUzQSUyMm5weCUyMC15JTIwJTQwYW50diUyRm1jcC1zZXJ2ZXItYW50diUyMiU3RA%3D%3D)
+[![Install MCP Server](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/install-mcp?name=mcp-server-antv&config=JTdCJTIyY29tbWFuZCUyMiUzQSUyMm5weCUyMC15JTIwJTQwYW50diUyRm1jcC1zZXJ2ZXItYW50diUyMiU3RA%3D%3D)
 
 Go to: `Settings` -> `Cursor Settings` -> `MCP` -> `Add new global MCP server`
 
