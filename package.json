@@ -1,5 +1,5 @@
 {
-  "name": "mcp-server-antv",
+  "name": "@antv/mcp-server-antv",
   "version": "0.1.0",
   "description": "MCP Server for AntV visualization libraries development, which provides documentation context and examples for visualization developers.",
   "main": "build/index.js",
