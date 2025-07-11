@@ -22,7 +22,7 @@ Supports **G2**, **G6**, and **F2** libraries for declarative visualization work
 
 ### Connect to Cursor
 
-[![Install MCP Server](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/install-mcp?name=mcp-server-antv&config=JTdCJTIyY29tbWFuZCUyMiUzQSUyMm5weCUyMC15JTIwJTQwYW50diUyRm1jcC1zZXJ2ZXItYW50diUyMiU3RA%3D%3D)
+[![Install MCP Server](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/install-mcp?name=mcp-server-antv&config=eyJjb21tYW5kIjoibnB4IC15IEBhbnR2L21jcC1zZXJ2ZXItYW50diJ9)
 
 Go to: `Settings` -> `Cursor Settings` -> `MCP` -> `Add new global MCP server`
 
@@ -52,7 +52,7 @@ On Window system:
 
 ### Connect to VSCode
 
-[![Install in VSCode](https://img.shields.io/badge/Install%20in-VSCode-007ACC?logo=visualstudiocode&logoColor=white)](vscode:mcp/install?%7B%22name%22%3A%22mcp-server-antv%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22%40antv%2Fmcp-server-antv%22%5D%7D)
+[![Install in VSCode](https://img.shields.io/badge/Install%20in-VSCode-007ACC?logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect?url=vscode%3Amcp%2Finstall%3F%257B%2522name%22%3A%22mcp-server-antv%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22%40antv%2Fmcp-server-antv%22%5D%7D)
 
 Pasting the following configuration into your VSCode `~/.vscode/mcp.json` file is the recommended approach.
 
