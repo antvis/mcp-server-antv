@@ -1,4 +1,4 @@
-# MCP Server AntV ![](https://badge.mcpx.dev?type=server 'MCP Server')[![npm Version](https://img.shields.io/npm/v/@antv/mcp-server-antv.svg)](https://www.npmjs.com/package/@antv/mcp-server-antv) [![smithery badge](https://smithery.ai/badge/@antvis/mcp-server-antv)](https://smithery.ai/server/@antvis/mcp-server-antv) [![npm License](https://img.shields.io/npm/l/@antv/mcp-server-antv.svg)](https://www.npmjs.com/package/@antv/mcp-server-antv)
+# MCP Server AntV ![](https://badge.mcpx.dev?type=server 'MCP Server') [![npm Version](https://img.shields.io/npm/v/@antv/mcp-server-antv.svg)](https://www.npmjs.com/package/@antv/mcp-server-antv) [![smithery badge](https://smithery.ai/badge/@antvis/mcp-server-antv)](https://smithery.ai/server/@antvis/mcp-server-antv) [![npm License](https://img.shields.io/npm/l/@antv/mcp-server-antv.svg)](https://www.npmjs.com/package/@antv/mcp-server-antv)
 
 > A **Model Context Protocol (MCP)** server designed for AI development and QA that provides **AntV** documentation context and code examples using the latest APIs.  
 
@@ -18,11 +18,11 @@ Supports **G2**, **G6**, and **F2** libraries for declarative visualization work
 ### Requirements
 
 - Node.js >= v18.0.0
-- Cursor, VSCode, [Cline](https://cline.bot/mcp-marketplace), Claude Desktop or another MCP Client.
+- Cursor, VSCode, Cline, Claude Desktop or another MCP Client.
 
 ### Connect to Cursor
 
-[![Install MCP Server](https://cursor.com/deeplink/mcp-install-light.svg)](https://cursor.com/install-mcp?name=mcp-server-antv&config=JTdCJTIyY29tbWFuZCUyMiUzQSUyMm5weCUyMC15JTIwJTQwYW50diUyRm1jcC1zZXJ2ZXItYW50diUyMiU3RA%3D%3D)
+[![Install MCP Server](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/install-mcp?name=mcp-server-antv&config=JTdCJTIyY29tbWFuZCUyMiUzQSUyMm5weCUyMC15JTIwJTQwYW50diUyRm1jcC1zZXJ2ZXItYW50diUyMiU3RA%3D%3D)
 
 Go to: `Settings` -> `Cursor Settings` -> `MCP` -> `Add new global MCP server`
 
