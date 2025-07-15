@@ -8,7 +8,7 @@
  */
 
 import { z } from 'zod';
-import type { AntVLibrary } from '../types';
+import type { AntVConfig, AntVLibrary } from '../types';
 import { logger, getLibraryId, fetchLibraryDocumentation } from '../utils';
 import {
   getLibraryConfig,
@@ -150,14 +150,13 @@ async function handleComplexTaskWithDocCheck(
     response += `---\n\n`;
   }
   response += `## 🎯 Task Integration Recommendations\n\n`;
-  response += generateComplexTaskSummary(args, subTaskResults);
-  response += generateIntentSpecificGuidance(args.intent, library);
+  response += generateComplexTaskSummary(subTaskResults);
+  response += generateIntentSpecificGuidance(args.intent, libraryConfig);
   response += generateFollowUpGuidance();
   return { response, hasDocumentation: hasValidDocumentation };
 }
 
 function generateComplexTaskSummary(
-  args: QueryAntVDocumentArgs,
   subTaskResults: Array<{
     task: any;
     documentation: string | null;
@@ -196,7 +195,7 @@ function generateResponse(
   response += `\n---\n\n`;
   if (context) {
     response += `## 📚 Related Documentation\n\n${context}\n\n`;
-    response += generateIntentSpecificGuidance(args.intent, library);
+    response += generateIntentSpecificGuidance(args.intent, libraryConfig);
   } else {
     response += `## ⚠️ Documentation Retrieval Failed\n\n`;
     response += `\nError: ${errorMsg}\n`;
@@ -211,21 +210,21 @@ function generateResponse(
 
 function generateIntentSpecificGuidance(
   intent: string,
-  library: string,
+  libraryConfig: AntVConfig,
 ): string {
   switch (intent) {
     case 'learn':
-      return generateLearnGuidance(library);
+      return generateLearnGuidance();
     case 'implement':
-      return generateImplementGuidance(library);
+      return generateImplementGuidance(libraryConfig);
     case 'solve':
-      return generateSolveGuidance(library);
+      return generateSolveGuidance(libraryConfig);
     default:
-      return generateDefaultGuidance(library);
+      return generateDefaultGuidance(libraryConfig);
   }
 }
 
-function generateLearnGuidance(library: string): string {
+function generateLearnGuidance(): string {
   return `## 💡 Learning Recommendations
 
 - First understand the core concepts and basic usage in the documentation
@@ -236,9 +235,9 @@ function generateLearnGuidance(library: string): string {
 `;
 }
 
-function generateImplementGuidance(library: string): string {
+function generateImplementGuidance(libraryConfig: AntVConfig): string {
   return `## 🛠️ Implementation Recommendations
-
+- Follow the code style and best practices of the library: ${libraryConfig.codeStyle}
 - Refer to example code in the documentation
 - Pay attention to required and optional parameter configurations
 - Implement basic features first, then add advanced features
@@ -247,24 +246,24 @@ function generateImplementGuidance(library: string): string {
 `;
 }
 
-function generateSolveGuidance(library: string): string {
+function generateSolveGuidance(libraryConfig: AntVConfig): string {
   return `## 🔧 Troubleshooting
 
 - Check error messages and parameter configurations
 - Compare your code with documentation examples for differences
-- Confirm ${library} version and dependency compatibility
+- Confirm ${libraryConfig.name} version and dependency compatibility
 - If problems persist, check official GitHub Issues
 
 `;
 }
 
-function generateDefaultGuidance(library: string): string {
+function generateDefaultGuidance(libraryConfig: AntVConfig): string {
   return `## 📖 Usage Recommendations
 
 - Carefully read the above documentation content
 - Practice with reference to code examples
 - Adjust relevant parameters according to requirements
-- Consult ${library} official documentation for more information
+- Consult ${libraryConfig.name} official documentation for more information
 
 `;
 }

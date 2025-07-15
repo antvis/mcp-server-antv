@@ -7,25 +7,29 @@ export const ANTV_LIBRARY_META = {
     name: 'G2',
     description:
       'Statistical charts, data visualization, business intelligence charts',
-    keywords: [],
+    keywords: '',
+    codeStyle: '',
   },
   g6: {
     id: 'g6' as AntVLibrary,
     name: 'G6',
     description: 'Graph analysis, network diagrams, node-link relationships',
-    keywords: [],
+    keywords: '',
+    codeStyle: '',
   },
   l7: {
     id: 'l7' as AntVLibrary,
     name: 'L7',
     description: 'Geospatial visualization, maps, geographic data analysis',
-    keywords: [],
+    keywords: '',
+    codeStyle: '',
   },
   x6: {
     id: 'x6' as AntVLibrary,
     name: 'X6',
     description: 'Graph editing, flowcharts, diagram creation tools',
-    keywords: [],
+    keywords: '',
+    codeStyle: '',
   },
   f2: {
     id: 'f2' as AntVLibrary,
@@ -42,9 +46,12 @@ export const ANTV_LIBRARY_META = {
     - 饼图标签 (PieLabel)
     - 象形柱图 (PictorialBar)
   <components>
+  `,
+    codeStyle: `
   <convention>
-    - JSX 语法
-    - Guides, Legend, Timeline, Axis 组件必须在 Chart 组件内使用
+    - Use F2's components directly in JSX. If TypeScript errors occur, add @ts-ignore above the component
+    - Code examples are for Node environment. For React framework, import ReactCanvas from '@antv/f2-react' and use <ReactCanvas/> component instead of <Canvas/> component
+    - In F2's canvas coordinate system, Y coordinates increase from top to bottom, and X coordinates increase from left to right by default. Therefore, all values for offsetY, offsetX, x, y and similar properties are relative to the top-left corner of the canvas.
   </convention>
   `,
   },
@@ -52,7 +59,8 @@ export const ANTV_LIBRARY_META = {
     id: 's2' as AntVLibrary,
     name: 'S2',
     description: 'Table analysis, spreadsheet-like interactions, data grids',
-    keywords: [],
+    keywords: '',
+    codeStyle: '',
   },
 };
 
@@ -74,5 +82,5 @@ export function getLibraryDescription(library: AntVLibrary): string {
 }
 
 export function getLibraryKeywords(library: AntVLibrary) {
-  return ANTV_LIBRARY_META[library]?.keywords || [];
+  return ANTV_LIBRARY_META[library]?.keywords || '';
 }
