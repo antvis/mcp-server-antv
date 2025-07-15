@@ -27,7 +27,8 @@ describe('context7', () => {
       name: 'G2',
       description:
         'Statistical charts, data visualization, business intelligence charts',
-      keywords: [],
+      keywords: '',
+      codeStyle: '',
     });
   });
 
