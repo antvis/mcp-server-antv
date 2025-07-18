@@ -1,14 +1,8 @@
 /**
- * AntV Professional Documentation Assistant
- *
- * Provides accurate and detailed visualization solutions based on official AntV documentation.
- * Suitable for all AntV-related follow-up queries and supplementary questions.
- * After initial queries, if users propose any AntV-related corrections, optimizations, supplements, or new requirements, this tool should be called.
- * Supports both simple queries and complex task processing, providing code examples and best practice recommendations. Covers the entire AntV ecosystem.
+ * AntV Documentation Query Tool - Provides visualization solutions from official docs
  */
-
 import { z } from 'zod';
-import type { AntVConfig, AntVLibrary } from '../types';
+import type { AntVLibrary } from '../types';
 import { logger, getLibraryId, fetchLibraryDocumentation } from '../utils';
 import {
   getLibraryConfig,
@@ -16,271 +10,155 @@ import {
   CONTEXT7_TOKENS,
 } from '../constant';
 
-type QueryAntVDocumentArgs = {
-  library: AntVLibrary;
-  query: string;
-  tokens: number;
-  topic: string;
-  intent: string;
-  subTasks?: Array<{
-    query: string;
-    topic: string;
-  }>;
-};
-
 const QueryAntVDocumentInputSchema = z.object({
-  library: z
-    .enum(
-      Object.keys(ANTV_LIBRARY_META) as [
-        keyof typeof ANTV_LIBRARY_META,
-        ...Array<keyof typeof ANTV_LIBRARY_META>,
-      ],
-      {
-        errorMap: () => ({
-          message: `Unsupported library. Must be one of: ${Object.keys(ANTV_LIBRARY_META).join(', ')}`,
-        }),
-      },
-    )
-    .describe(
-      'Specified AntV library type, intelligently identified based on user query',
-    ),
-  query: z
-    .string()
-    .min(1, 'Query cannot be empty')
-    .trim()
-    .describe('User specific question or requirement description'),
-  tokens: z
-    .number()
-    .int('Tokens must be an integer')
-    .min(CONTEXT7_TOKENS.min, `Tokens must be at least ${CONTEXT7_TOKENS.min}`)
-    .max(CONTEXT7_TOKENS.max, `Tokens cannot exceed ${CONTEXT7_TOKENS.max}`)
+  library: z.enum(Object.keys(ANTV_LIBRARY_META) as [AntVLibrary, ...AntVLibrary[]])
+    .describe('Specified AntV library type, intelligently identified based on user query'),
+  query: z.string().min(1).describe('User specific question or requirement description'),
+  topic: z.string().min(1).describe('Technical topic keywords (comma-separated). Provided by `extract_antv_topic` or directly extracted from simple questions.'),
+  intent: z.string().min(1).describe('Extracted user intent, provided by extract_antv_topic tool or directly extracted from simple questions.'),
+  tokens: z.number().int()
+    .min(CONTEXT7_TOKENS.min)
+    .max(CONTEXT7_TOKENS.max)
     .default(CONTEXT7_TOKENS.default)
     .describe('tokens for returned content'),
-  topic: z
-    .string()
-    .min(1, 'Topic cannot be empty')
-    .trim()
-    .describe(
-      'Technical topic keywords (comma-separated). Provided by `extract_antv_topic` or directly extracted from simple questions.',
-    ),
-  intent: z
-    .string()
-    .min(1, 'Intent cannot be empty')
-    .trim()
-    .describe(
-      'Extracted user intent, provided by extract_antv_topic tool or directly extracted from simple questions.',
-    ),
-  subTasks: z
-    .array(
-      z.object({
-        query: z
-          .string()
-          .min(1, 'Subtask query cannot be empty')
-          .trim()
-          .describe('Subtask query'),
-        topic: z
-          .string()
-          .min(1, 'Subtask topic cannot be empty')
-          .trim()
-          .describe('Subtask topic'),
-      }),
-    )
-    .describe(
-      'Decomposed subtask list for complex tasks, supports batch processing',
-    )
-    .optional(),
+  subTasks: z.array(z.object({
+    query: z.string().min(1).describe('Subtask query'),
+    topic: z.string().min(1).describe('Subtask topic')
+  })).optional().describe('Decomposed subtask list for complex tasks, supports batch processing')
 });
 
-async function handleComplexTaskWithDocCheck(
+type QueryAntVDocumentArgs = z.infer<typeof QueryAntVDocumentInputSchema>;
+
+async function handleComplexTask(
   args: QueryAntVDocumentArgs,
   libraryId: string,
-  subTasks: Array<{ query: string; topic: string }>,
+  subTasks: Array<{ query: string; topic: string }>
 ): Promise<{ response: string; hasDocumentation: boolean }> {
   const libraryConfig = getLibraryConfig(args.library);
-  const library = libraryConfig.name;
-  let response = `# ${library} Complex Task Response\n\n`;
-  response += `**User Question**: ${args.query}\n`;
-  response += `**Task Type**: Complex task (decomposed into ${subTasks.length} subtasks)\n`;
-  response += `\n---\n\n`;
-  const tokenPerSubTask = Math.min(
-    Math.floor(args.tokens / subTasks.length),
-    1000,
-  );
+  const tokenPerSubTask = Math.min(Math.floor(args.tokens / subTasks.length), 1000);
+
+  let response = `# ${libraryConfig.name} Complex Task Solution\n\n`;
+  response += `**Question**: ${args.query}\n`;
+  response += `**Complexity**: Decomposed into ${subTasks.length} subtasks\n\n---\n\n`;
+
   const subTaskPromises = subTasks.map(async (subTask, index) => {
     try {
-      logger.info(
-        `Processing subtask ${index + 1}/${subTasks.length}: ${subTask.topic}`,
-      );
-      const { documentation, error: docError } =
-        await fetchLibraryDocumentation(
-          libraryId,
-          subTask.topic,
-          tokenPerSubTask,
-        );
-      return { task: subTask, documentation, error: docError };
+      logger.info(`Processing subtask ${index + 1}/${subTasks.length}: ${subTask.topic}`);
+      const { documentation, error } = await fetchLibraryDocumentation(libraryId, subTask.topic, tokenPerSubTask);
+      return { task: subTask, documentation, error };
     } catch (error) {
       logger.error(`Failed to process subtask ${index + 1}:`, error);
       return {
         task: subTask,
         documentation: null,
-        error: error instanceof Error ? error.message : String(error),
+        error: error instanceof Error ? error.message : String(error)
       };
     }
   });
-  const subTaskResults = await Promise.all(subTaskPromises);
-  const hasValidDocumentation = subTaskResults.some(
-    (result) =>
-      result.documentation !== null && result.documentation.trim() !== '',
-  );
-  for (const [index, result] of subTaskResults.entries()) {
-    response += `## 📋 Subtask ${index + 1}\n\n`;
-    response += `**Subtask Query**: ${result.task.query}\n`;
-    response += `**Subtask Topic**: ${result.task.topic}\n\n`;
+
+  const results = await Promise.all(subTaskPromises);
+  const hasDocumentation = results.some(r => r.documentation !== null && r.documentation.trim() !== '');
+
+  // Generate subtask responses
+  for (const [index, result] of results.entries()) {
+    response += `## 📋 Subtask ${index + 1}: ${result.task.query}\n\n`;
     if (result.documentation) {
       response += `${result.documentation}\n\n`;
     } else {
-      response += `⚠️ Could not retrieve relevant documentation content\n\n`;
+      response += `⚠️ No relevant documentation found for this subtask.\n`;
       if (result.error) {
-        response += `\nError: ${result.error}\n`;
-      } else {
-        response += `\n`;
+        response += `Error: ${result.error}\n`;
       }
-      response += `\n`;
     }
     response += `---\n\n`;
   }
-  response += `## 🎯 Task Integration Recommendations\n\n`;
-  response += generateComplexTaskSummary(subTaskResults);
-  response += generateIntentSpecificGuidance(args.intent, libraryConfig);
-  response += generateFollowUpGuidance();
-  return { response, hasDocumentation: hasValidDocumentation };
-}
 
-function generateComplexTaskSummary(
-  subTaskResults: Array<{
-    task: any;
-    documentation: string | null;
-    error: string | undefined;
-  }>,
-): string {
-  const successCount = subTaskResults.filter((r) => r.documentation).length;
-  const totalCount = subTaskResults.length;
-  let summary = `Based on ${successCount}/${totalCount} subtask documentation query results:\n\n`;
-  if (successCount === totalCount) {
-    summary += `✅ **Complete Answer**: All subtasks found relevant documentation`;
-  } else if (successCount > totalCount / 2) {
-    summary += `⚠️ **Partial Answer**: Most subtasks found relevant documentation. Recommendations:\n\n`;
-    summary += `1. Implement features with documentation support first\n`;
-    summary += `2. For parts lacking documentation, consult official resources or example code\n`;
-    summary += `3. Gradually improve solutions through practice\n\n`;
+  // Add integration summary
+  const successCount = results.filter(r => r.documentation).length;
+  response += `## 🎯 Integration Summary\n\n`;
+
+  if (successCount === results.length) {
+    response += `✅ **Complete Solution**: Found documentation for all ${successCount} subtasks.\n\n`;
+    response += `**Next Steps**: Combine the solutions above into your implementation.\n\n`;
+  } else if (successCount > 0) {
+    response += `⚠️ **Partial Solution**: Found documentation for ${successCount}/${results.length} subtasks.\n\n`;
+    response += `**Recommendations**:\n`;
+    response += `- Implement features with available documentation first\n`;
+    response += `- For missing parts, check official examples or community resources\n\n`;
   } else {
-    summary += `❌ **Insufficient Documentation**: Most subtasks lack documentation support. Recommendations:\n\n`;
-    summary += `1. Refine query keywords\n`;
-    summary += `2. Consult official documentation and examples\n`;
-    summary += `3. Look for community resources and best practices\n\n`;
+    response += `❌ **Limited Results**: No documentation found for the subtasks.\n\n`;
+    response += `**Suggestions**:\n`;
+    response += `- Try refining the query with more specific keywords\n`;
+    response += `- Check the official ${libraryConfig.name} documentation directly\n\n`;
   }
-  return summary;
+
+  response += generateImplementationGuidance(args.intent);
+  response += generateFollowUpNotice();
+
+  return { response, hasDocumentation };
 }
 
-function generateResponse(
-  args: QueryAntVDocumentArgs,
-  context: string | null,
-  errorMsg?: string | undefined,
-): string {
+function generateSimpleResponse(args: QueryAntVDocumentArgs, documentation: string | null, error?: string): string {
   const libraryConfig = getLibraryConfig(args.library);
-  const library = libraryConfig.name;
-  let response = `# ${library} Q&A\n\n`;
-  response += `**User Question**: ${args.query}\n`;
-  response += `**Search Topic**: ${args.topic}\n`;
-  response += `\n---\n\n`;
-  if (context) {
-    response += `## 📚 Related Documentation\n\n${context}\n\n`;
-    response += generateIntentSpecificGuidance(args.intent, libraryConfig);
-  } else {
-    response += `## ⚠️ Documentation Retrieval Failed\n\n`;
-    response += `\nError: ${errorMsg}\n`;
-    response += `Could not retrieve relevant documentation content. Recommendations:\n`;
-    response += `1. Check if search topics are accurate\n`;
-    response += `2. Try using more specific technical terms\n`;
-    response += `3. Refer to ${library} official documentation\n`;
+
+  if (!documentation) {
+    return `# ${libraryConfig.name} Query Result\n\n` +
+           `**Question**: ${args.query}\n\n` +
+           `❌ **No Documentation Found**\n\n` +
+           `${error ? `Error: ${error}\n\n` : ''}` +
+           `**Suggestions**:\n` +
+           `- Try refining your search terms\n` +
+           `- Check the official ${libraryConfig.name} documentation\n` +
+           `- Ensure you're using the correct library for your use case\n\n` +
+           generateFollowUpNotice();
   }
-  response += generateFollowUpGuidance();
+
+  let response = `# ${libraryConfig.name} Solution\n\n`;
+  response += `**Question**: ${args.query}\n\n`;
+  response += `${documentation}\n\n`;
+  response += generateImplementationGuidance(args.intent);
+  response += generateFollowUpNotice();
+
   return response;
 }
 
-function generateIntentSpecificGuidance(
-  intent: string,
-  libraryConfig: AntVConfig,
-): string {
+function generateImplementationGuidance(intent: string): string {
   switch (intent) {
     case 'learn':
-      return generateLearnGuidance();
+      return `## 💡 Learning Tips\n\n` +
+             `- Review the concepts and examples above\n` +
+             `- Try running the code examples in your development environment\n` +
+             `- Start with basic implementations before adding complexity\n\n`;
+
     case 'implement':
-      return generateImplementGuidance(libraryConfig);
+      return `## 🛠️ Implementation Guide\n\n` +
+             `- Follow the code examples and patterns shown above\n` +
+             `- Pay attention to required vs optional parameters\n` +
+             `- Test with simple data first, then use your real data\n` +
+             `- Check browser console for any errors during development\n\n`;
+
     case 'solve':
-      return generateSolveGuidance(libraryConfig);
+      return `## 🔧 Troubleshooting\n\n` +
+             `- Compare your code with the examples above\n` +
+             `- Verify all required dependencies are installed\n` +
+             `- Check for version compatibility issues\n` +
+             `- Look for error messages in browser console\n\n`;
+
     default:
-      return generateDefaultGuidance(libraryConfig);
+      return `## 📖 Next Steps\n\n` +
+             `- Review the documentation above carefully\n` +
+             `- Adapt the examples to your specific requirements\n` +
+             `- Test incrementally and iterate as needed\n\n`;
   }
 }
 
-function generateLearnGuidance(): string {
-  return `## 💡 Learning Recommendations
-
-- First understand the core concepts and basic usage in the documentation
-- Run example code to observe effects and parameter functions
-- Start with simple examples, gradually try complex features
-- Consult official documentation when encountering problems
-
-`;
-}
-
-function generateImplementGuidance(libraryConfig: AntVConfig): string {
-  return `## 🛠️ Implementation Recommendations
-- Follow the code style and best practices of the library: ${libraryConfig.codeStyle}
-- Refer to example code in the documentation
-- Pay attention to required and optional parameter configurations
-- Implement basic features first, then add advanced features
-- Don't over-optimize, focus on user requirements
-- Merge multiple examples into one final solution with only core functionality
-`;
-}
-
-function generateSolveGuidance(libraryConfig: AntVConfig): string {
-  return `## 🔧 Troubleshooting
-
-- Check error messages and parameter configurations
-- Compare your code with documentation examples for differences
-- Confirm ${libraryConfig.name} version and dependency compatibility
-- If problems persist, check official GitHub Issues
-
-`;
-}
-
-function generateDefaultGuidance(libraryConfig: AntVConfig): string {
-  return `## 📖 Usage Recommendations
-
-- Carefully read the above documentation content
-- Practice with reference to code examples
-- Adjust relevant parameters according to requirements
-- Consult ${libraryConfig.name} official documentation for more information
-
-`;
-}
-
-function generateFollowUpGuidance(): string {
-  return `
-
----
-
-## 🔄 Important Notice
-
-**For subsequent AntV queries:**
-- **MANDATORY**: Always use \`query_antv_document\` tool for ANY AntV-related query (including simple modifications)
-- **For new questions**: Use \`extract_antv_topic\` first, then \`query_antv_document\`
-- **Never** provide AntV solutions without querying official documentation through tools
-
-`;
+function generateFollowUpNotice(): string {
+  return `---\n\n` +
+         `## 🔄 Important Notice\n\n` +
+         `**For subsequent AntV queries:**\n` +
+         `- **MANDATORY**: Always use \`query_antv_document\` tool for ANY AntV-related query (including simple modifications)\n` +
+         `- **For new questions**: Use \`extract_antv_topic\` first, then \`query_antv_document\`\n` +
+         `- **Never** provide AntV solutions without querying official documentation through tools\n\n`;
 }
 
 export const QueryAntVDocumentTool = {
@@ -301,23 +179,20 @@ When to use this tool:
     try {
       const libraryId = getLibraryId(args.library);
       let response: string;
-      let subTaskResults: any[] = [];
-      let isComplexTask = false;
       let hasDocumentation = false;
+
       if (args.subTasks && args.subTasks.length > 0) {
-        isComplexTask = true;
-        const { response: taskResponse, hasDocumentation: taskHasDoc } =
-          await handleComplexTaskWithDocCheck(args, libraryId, args.subTasks);
-        response = taskResponse;
-        hasDocumentation = taskHasDoc;
-        subTaskResults = args.subTasks;
+        // Handle complex task with subtasks
+        const result = await handleComplexTask(args, libraryId, args.subTasks);
+        response = result.response;
+        hasDocumentation = result.hasDocumentation;
       } else {
-        const { documentation, error: docError } =
-          await fetchLibraryDocumentation(libraryId, args.topic, args.tokens);
-        hasDocumentation =
-          documentation !== null && documentation.trim() !== '';
-        response = generateResponse(args, documentation, docError);
+        // Handle simple query
+        const { documentation, error } = await fetchLibraryDocumentation(libraryId, args.topic, args.tokens);
+        hasDocumentation = documentation !== null && documentation.trim() !== '';
+        response = generateSimpleResponse(args, documentation, error);
       }
+
       const processingTime = Date.now() - startTime;
       return {
         content: [{ type: 'text', text: response }],
@@ -330,8 +205,9 @@ When to use this tool:
         },
       };
     } catch (error) {
-      logger.error('Failed to execute assistant tool:', error);
+      logger.error('Failed to execute query tool:', error);
       const processingTime = Date.now() - startTime;
+
       return {
         content: [
           {
