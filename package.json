@@ -12,6 +12,7 @@
     "start": "npm run build && npx @modelcontextprotocol/inspector node build/index.js",
     "prepare": "npm run build",
     "prepublishOnly": "npm run build",
+    "release": "npm publish",
     "test": "vitest"
   },
   "keywords": [
