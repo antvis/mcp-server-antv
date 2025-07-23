@@ -129,7 +129,7 @@ async function handleComplexTask(
     response += `- Check the official ${libraryConfig.name} documentation directly\n\n`;
   }
 
-  response += generateImplementationGuidance(args.intent);
+  response += generateImplementationGuidance(args.intent, args.library);
   response += generateFollowUpNotice();
 
   return { response, hasDocumentation };
@@ -160,13 +160,16 @@ function generateSimpleResponse(
   response += `**User Question**: ${args.query}\n`;
   response += `**Search Topic**: ${args.topic}\n`;
   response += `${documentation}\n\n`;
-  response += generateImplementationGuidance(args.intent);
+  response += generateImplementationGuidance(args.intent, args.library);
   response += generateFollowUpNotice();
 
   return response;
 }
 
-function generateImplementationGuidance(intent: string): string {
+function generateImplementationGuidance(
+  intent: string,
+  library: AntVLibrary,
+): string {
   switch (intent) {
     case 'learn':
       return (
@@ -177,9 +180,12 @@ function generateImplementationGuidance(intent: string): string {
       );
 
     case 'implement':
+      const config = getLibraryConfig(library);
+
       return (
         `## 🛠️ Implementation Guide\n\n` +
         `- Follow the code examples and patterns shown above\n` +
+        ` ${config.codeStyle}\n` +
         `- Pay attention to required vs optional parameters\n` +
         `- Test with simple data first, then use your real data\n` +
         `- Check browser console for any errors during development\n\n`
