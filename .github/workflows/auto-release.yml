@@ -1,0 +1,43 @@
+name: 🚀 Auto Release
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  release:
+    runs-on: macos-latest
+    if: startsWith(github.event.head_commit.message , 'chore(release):')
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: '0'
+
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: lint
+        run: |
+          npm run lint
+
+      - name: build
+        run: |
+          npm run build
+        env:
+          CI: false
+
+      - name: test
+        run: |
+          npm run test
+
+      - name: Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm run release

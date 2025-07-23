@@ -1,5 +1,3 @@
-[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/antvis-mcp-server-antv-badge.png)](https://mseep.ai/app/antvis-mcp-server-antv)
-
 # MCP Server AntV ![](https://badge.mcpx.dev?type=server 'MCP Server') [![npm Version](https://img.shields.io/npm/v/@antv/mcp-server-antv.svg)](https://www.npmjs.com/package/@antv/mcp-server-antv) [![smithery badge](https://smithery.ai/badge/@antvis/mcp-server-antv)](https://smithery.ai/server/@antvis/mcp-server-antv) [![npm License](https://img.shields.io/npm/l/@antv/mcp-server-antv.svg)](https://www.npmjs.com/package/@antv/mcp-server-antv)
 
 > A **Model Context Protocol (MCP)** server designed for AI development and QA that provides **AntV** documentation context and code examples using the latest APIs.
