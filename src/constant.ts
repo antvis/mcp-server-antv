@@ -7,8 +7,29 @@ export const ANTV_LIBRARY_META = {
     name: 'G2',
     description:
       'Statistical charts, data visualization, business intelligence charts',
-    keywords: '',
-    codeStyle: '',
+    keywords: `
+- 图表 (Chart)
+- 标记 (Mark)
+- 比例尺 (Scale)
+- 转换 (Transform)
+- 坐标系 (Coordinate)
+- 动画 (Animate)
+- 交互 (Interaction)
+- 复合 (Composition)
+- 组件 (Component)
+- 编码 (Encode)
+- 通道 (Channel)
+- 提示信息 (Tooltip)
+- 坐标轴 (Axis)
+- 数据标签 (Label)
+- 标注（Annotation）
+- 配置项 (Options)
+    `,
+    codeStyle: `
+    <convention>
+    - Prioritize using options() method to configure charts
+    </convention>
+  `,
   },
   g6: {
     id: 'g6' as AntVLibrary,

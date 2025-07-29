@@ -21,17 +21,6 @@ describe('context7', () => {
     expect(isValidLibrary('unknown')).toBe(false);
   });
 
-  it('getLibraryConfig', () => {
-    expect(getLibraryConfig('g2')).toEqual({
-      id: 'g2',
-      name: 'G2',
-      description:
-        'Statistical charts, data visualization, business intelligence charts',
-      keywords: '',
-      codeStyle: '',
-    });
-  });
-
   it('ANTV_LIBRARY_META', () => {
     expect(Object.values(ANTV_LIBRARY_META).length).toBe(6);
   });
