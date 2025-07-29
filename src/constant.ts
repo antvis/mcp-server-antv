@@ -8,29 +8,21 @@ export const ANTV_LIBRARY_META = {
     description:
       'Statistical charts, data visualization, business intelligence charts',
     keywords: `
-    - 图表 (Chart)
+- 图表 (Chart)
 - 标记 (Mark)
-- 数据 (Data)
 - 比例尺 (Scale)
 - 转换 (Transform)
 - 坐标系 (Coordinate)
 - 动画 (Animate)
 - 交互 (Interaction)
 - 复合 (Composition)
-- 主题 (Theme)
 - 组件 (Component)
-- 布局 (Layout)
-- 风格/样式 (Style)
 - 编码 (Encode)
 - 通道 (Channel)
 - 提示信息 (Tooltip)
-- 图例 (Legend)
 - 坐标轴 (Axis)
-- 网格 (Grid)
 - 数据标签 (Label)
-- 插件 (Plugin)
 - 标注（Annotation）
-- 画布 (Canvas)
 - 配置项 (Options)
     `,
     codeStyle: `
