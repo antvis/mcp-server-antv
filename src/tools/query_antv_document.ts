@@ -194,7 +194,7 @@ function generateImplementationGuidance(
     case 'solve':
       return (
         `## 🔧 Troubleshooting\n\n` +
-        `- Compare your code with the examples above\n` +
+        `- Compare your code with the examples above, ensure your configuration structure matches the examples above\n` +
         `- Verify all required dependencies are installed\n` +
         `- Check for version compatibility issues\n` +
         `- Look for error messages in browser console\n\n`
@@ -205,6 +205,7 @@ function generateImplementationGuidance(
         `## 📖 Next Steps\n\n` +
         `- Review the documentation above carefully\n` +
         `- Adapt the examples to your specific requirements\n` +
+        `- Ensure your implementation follows ${getLibraryConfig(library).name} best practices and conventions\n` +
         `- Test incrementally and iterate as needed\n\n`
       );
   }
