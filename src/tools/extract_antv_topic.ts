@@ -193,6 +193,7 @@ Key features:
           },
         ],
         _meta: {
+          query: args.query, // Original user query for next tool
           topic: '', // Will be filled by LLM
           intent: '', // Will be filled by LLM
           library: args.library || 'auto-detect',
@@ -219,6 +220,7 @@ Key features:
         ],
         isError: true,
         _meta: {
+          query: args.query, // Original user query for next tool
           topic: '',
           intent: '',
           library: args.library || 'auto-detect',
