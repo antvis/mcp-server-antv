@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  ANTV_LIBRARY_META,
-  CONTEXT7_TOKENS,
-} from '../src/constant';
+import { ANTV_LIBRARY_META, CONTEXT7_TOKENS } from '../src/constant';
 
 // Helper function to check if a library is valid
 function isValidLibrary(library: string): boolean {
