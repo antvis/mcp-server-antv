@@ -22,7 +22,7 @@ describe('context7', () => {
   });
 
   it('ANTV_LIBRARY_META', () => {
-    expect(Object.values(ANTV_LIBRARY_META).length).toBe(6);
+    expect(Object.values(ANTV_LIBRARY_META).length).toBe(9);
   });
 
   it('CONTEXT7_TOKENS', () => {
