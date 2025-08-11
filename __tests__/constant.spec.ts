@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  getLibraryConfig,
   ANTV_LIBRARY_META,
   CONTEXT7_TOKENS,
 } from '../src/constant';
@@ -18,11 +17,14 @@ describe('context7', () => {
     expect(isValidLibrary('g6')).toBe(true);
     expect(isValidLibrary('x6')).toBe(true);
     expect(isValidLibrary('l7')).toBe(true);
+    expect(isValidLibrary('ava')).toBe(true);
+    expect(isValidLibrary('adc')).toBe(true);
+    expect(isValidLibrary('g')).toBe(true);
     expect(isValidLibrary('unknown')).toBe(false);
   });
 
   it('ANTV_LIBRARY_META', () => {
-    expect(Object.values(ANTV_LIBRARY_META).length).toBe(6);
+    expect(Object.values(ANTV_LIBRARY_META).length).toBe(9);
   });
 
   it('CONTEXT7_TOKENS', () => {

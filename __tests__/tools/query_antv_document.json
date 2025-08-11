@@ -1,13 +1,13 @@
 {
   "name": "query_antv_document",
-  "description": "AntV Context Retrieval Assistant - Fetches relevant documentation, code examples, and best practices from official AntV resources. Supports g2, g6, l7, x6, f2, s2 libraries, and handles subtasks iterative queries.\n\n**MANDATORY: Must be called for ANY AntV-related query (g2, g6, l7, x6, f2, s2), regardless of task complexity. No exceptions for simple tasks.**\n\nWhen to use this tool:\n- **Implementation & Optimization**: To implement new features, modify styles, refactor code, or optimize performance in AntV solutions.\n- **Debugging & Problem Solving**: For troubleshooting errors, unexpected behaviors, or technical challenges in AntV projects.\n- **Learning & Best Practices**: To explore official documentation, code examples, design patterns, or advanced features.\n- **Complex Task Handling**: For multi-step tasks requiring subtask decomposition (e.g., \"Build a dashboard with interactive charts\").\n- **Simple modifications**: Even basic changes like \"Change the chart's color\" or \"Update legend position\" in AntV context.",
+  "description": "AntV Context Retrieval Assistant - Fetches relevant documentation, code examples, and best practices from official AntV resources. Supports g2, g6, l7, x6, f2, s2, g, ava, adc libraries, and handles subtasks iterative queries.\n\n**MANDATORY: Must be called for ANY AntV-related query (g2, g6, l7, x6, f2, s2, g, ava, adc), regardless of task complexity. No exceptions for simple tasks.**\n\nWhen to use this tool:\n- **Implementation & Optimization**: To implement new features, modify styles, refactor code, or optimize performance in AntV solutions.\n- **Debugging & Problem Solving**: For troubleshooting errors, unexpected behaviors, or technical challenges in AntV projects.\n- **Learning & Best Practices**: To explore official documentation, code examples, design patterns, or advanced features.\n- **Complex Task Handling**: For multi-step tasks requiring subtask decomposition (e.g., \"Build a dashboard with interactive charts\").\n- **Simple modifications**: Even basic changes like \"Change the chart's color\" or \"Update legend position\" in AntV context.",
   "inputSchema": {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",
     "properties": {
       "library": {
         "type": "string",
-        "enum": ["g2", "g6", "l7", "x6", "f2", "s2"],
+        "enum": ["g2", "g6", "l7", "x6", "f2", "s2", "g", "ava", "adc"],
         "description": "Specified AntV library type, intelligently identified based on user query"
       },
       "query": {

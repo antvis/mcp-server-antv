@@ -83,6 +83,29 @@ export const ANTV_LIBRARY_META = {
     keywords: '',
     codeStyle: '',
   },
+  g: {
+    id: 'g' as AntVLibrary,
+    name: 'G',
+    description: 'AntV Grammar of Graphics runtime and specification',
+    keywords: '',
+    codeStyle: '',
+  },
+  ava: {
+    id: 'ava' as AntVLibrary,
+    name: 'AVA',
+    description:
+      'Automated Visual Analytics: chart advisor, insight, narrative',
+    keywords: '',
+    codeStyle: '',
+  },
+  adc: {
+    id: 'adc' as AntVLibrary,
+    name: 'ADC',
+    description:
+      'Ant Design Charts built on G2 for React and modern frameworks',
+    keywords: '',
+    codeStyle: '',
+  },
 };
 
 export const CONTEXT7_TOKENS = {

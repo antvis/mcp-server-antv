@@ -62,6 +62,7 @@ async function fetchContext7Library(url: string): Promise<string | null> {
  * Get the Context7 library ID corresponding to the AntV organization.
  */
 export function getLibraryId(library: AntVLibrary): string {
+  if (library === 'adc') return '/ant-design/ant-design-charts';
   return `/antvis/${library}`;
 }
 

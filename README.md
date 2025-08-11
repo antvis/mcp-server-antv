@@ -4,7 +4,7 @@
 
 <img width="768" alt="mcp-server-antv Technical Architecture" src="https://mdn.alipayobjects.com/huamei_qa8qxu/afts/img/A*WHSOR7L8U0YAAAAATjAAAAgAemJ7AQ/fmt.webp" />
 
-Supports **G2**, **G6**, and **F2** libraries for declarative visualization workflows, and **S2**, **X6**, and **L7** on the way～
+Supports **G2**, **G6**, and **F2** libraries for declarative visualization workflows, with **S2**, **X6**, **L7**, and more (including **AVA**, **ADC**, and **G**) coming soon.
 
 ## ✨ Features
 
