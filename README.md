@@ -77,7 +77,7 @@ code --add-mcp "{\"name\":\"mcp-server-antv\",\"command\": \"npx\",\"args\": [\"
 
 An example workflow:
 
-<video src="https://gw.alipayobjects.com/v/huamei_z07ha6/afts/video/A*LcVRR5vHKX4AAAAAg2AAAAgAeqyNAQ" ></video>
+<video src="https://github.com/user-attachments/assets/242471c6-33f5-4588-95f5-96a3f26aab21" ></video>
 
 ## 🧰 Tools Overview
 
