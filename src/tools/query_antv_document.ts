@@ -171,14 +171,6 @@ function generateImplementationGuidance(
   library: AntVLibrary,
 ): string {
   switch (intent) {
-    case 'learn':
-      return (
-        `## 💡 Learning Tips\n\n` +
-        `- Review the concepts and examples above\n` +
-        `- Try running the code examples in your development environment\n` +
-        `- Start with basic implementations before adding complexity\n\n`
-      );
-
     case 'implement':
       const config = getLibraryConfig(library);
 

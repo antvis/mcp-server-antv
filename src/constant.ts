@@ -70,9 +70,26 @@ export const ANTV_LIBRARY_META = {
   `,
     codeStyle: `
   <convention>
-    - Use F2's components directly in JSX. If TypeScript errors occur, add @ts-ignore above the component
-    - Code examples are for Node environment. For React framework, import ReactCanvas from '@antv/f2-react' and use <ReactCanvas/> component instead of <Canvas/> component
+    - Use F2's components directly in JSX. If TypeScript errors occur, add @ts-ignore above the component.
+    - Code examples are for Node environment. For React framework, import ReactCanvas from '@antv/f2-react' and use <ReactCanvas/> component instead of <Canvas/> component.
     - In F2's canvas coordinate system, Y coordinates increase from top to bottom, and X coordinates increase from left to right by default. Therefore, all values for offsetY, offsetX, x, y and similar properties are relative to the top-left corner of the canvas.
+    - **CRITICAL: The top-level scope does not support \`await\`. You MUST handle asynchronous operations like \`canvas.render()\` according to the following logic:**
+      - **If \`canvas.render()\` is the final action and nothing follows it, you MUST remove the \`await\` keyword.**
+        - **WRONG:** \`await canvas.render();\`
+        - **CORRECT:** \`canvas.render();\`
+      - **If there is any code that must run *after* \`canvas.render()\` completes, you MUST wrap the \`await\` and all subsequent code in an \`async\` IIFE (Immediately Invoked Function Expression).**
+        - **WRONG:**
+          \`\`\`javascript
+          await canvas.render();
+          console.log('Render complete.');
+          \`\`\`
+        - **CORRECT:**
+          \`\`\`javascript
+          (async () => {
+            await canvas.render();
+            console.log('Render complete.');
+          })();
+          \`\`\`
   </convention>
   `,
   },
@@ -80,8 +97,57 @@ export const ANTV_LIBRARY_META = {
     id: 's2' as AntVLibrary,
     name: 'S2',
     description: 'Table analysis, spreadsheet-like interactions, data grids',
-    keywords: '',
-    codeStyle: '',
+    keywords: `
+<components>
+  - 基础透视表 (Basic Pivot Table)
+  - 自定义单元格 (Custom Cell)
+  - 表组件 (Sheet Component)
+  - 字段标记 (Field Marking)
+  - 多行文本 (Multi-line Text)
+  - 分页 (Pagination)
+  - 排序 (Sorting)
+  - 透视表模式 (Pivot Mode)
+  - 明细表模式 (Table Mode)
+  - 下钻功能 (Drill Down)
+  - 导出功能 (Export)
+  - 分页组件 (Pagination Component)
+  - 表格组件 (Sheet Component)
+  - 合并单元格 (Merged Cell)
+  - 迷你图表 (Mini Chart)
+  - 冻结 (Frozen)
+  - 头部操作图标 (Header Action Icon)
+  - 复制导出 (Copy Export)
+  - 单元格对齐 (Cell Alignment)
+  - 获取单元格数据 (Get Cell Data)
+  - 获取实例 (Get Instance)
+  - 编辑表 (Editable Table)
+  - 趋势分析表 (Strategy Table)
+  - 趋势分析 (Strategy Analysis)
+  - 透视表 (Pivot Table)
+  - 明细表 (Table)
+  - 树状结构 (Tree Structure)
+  - 展开/折叠 (Expand/Collapse)
+  - 刷选 (Brush Selection)
+  - 单选 (Single Selection)
+  - 多选 (Multiple Selection)
+  - 行选/列选 (Row/Column Selection)
+  - 区间选择 (Range Selection)
+  - 悬停高亮 (Hover Highlight)
+  - 复制功能 (Copy Function)
+  - 隐藏列头 (Hide Column Header)
+  - 链接跳转 (Link Jump)
+  - 事件处理 (Event Handling)
+  - 单元格渲染 (Cell Rendering)
+  - 透视图表 (Pivot Chart)
+</components>
+    `,
+    codeStyle: `
+      <convention>
+    - **Default to using the core \`@antv/s2\` package** for simple pivot tables or tables without complex interactions. If the user's request can be fulfilled with a basic \`PivotSheet\` or \`TableSheet\` instance, do not use a framework-specific wrapper.
+    - **You MUST use the \`@antv/s2-react\` package and its \`SheetComponent\`** if the user's request involves advanced features such as building a trend analysis table (e.g., with in-cell mini charts), an editable table, or requires pre-built analysis components like \`Switch\` or \`Export\`.
+    - **The \`@antv/s2-vue\` library is unmaintained and MUST NOT be used.** For Vue.js implementations, you MUST generate code that manually wraps the core \`@antv/s2\` package within a standard Vue component.
+  </convention>
+    `,
   },
   g: {
     id: 'g' as AntVLibrary,
