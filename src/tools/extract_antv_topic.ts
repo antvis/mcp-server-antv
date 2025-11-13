@@ -105,7 +105,7 @@ ${libraryMappings}
 **Determine User Intent:**
 Based on the tone and content of the query, select the most matching intent:
 - **implement**: Creating new functionality, implementing features, code examples, configuration setup
-- **solve**: Fixing problems, troubleshooting errors, resolving styling issues, debugging functionality（If uncertain, default to solve.）
+- **solve**: Fixing problems, troubleshooting errors, resolving styling issues, debugging functionality(If uncertain, default to solve.)
 
 **Critical Identification Rules:**
 - **solve** intent: Query asks "how to configure/set/modify/change" existing features, styling properties, or visual attributes (colors, borders, fonts, sizes, positions)
