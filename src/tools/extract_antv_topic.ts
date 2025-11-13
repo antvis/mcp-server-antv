@@ -104,9 +104,20 @@ ${libraryMappings}
 
 **Determine User Intent:**
 Based on the tone and content of the query, select the most matching intent:
-- **learn**: Learning and understanding (e.g., what is, how to understand, introduce)
-- **implement**: Implementing functionality (e.g., how to create, how to implement, code examples)
-- **solve**: Solving problems (e.g., errors, not working, fixing issues)
+- **implement**: Creating new functionality, implementing features, code examples, configuration setup
+- **solve**: Fixing problems, troubleshooting errors, resolving styling issues, debugging functionality（If uncertain, default to solve.）
+
+**Critical Identification Rules:**
+- **solve** intent: Query asks "how to configure/set/modify/change" existing features, styling properties, or visual attributes (colors, borders, fonts, sizes, positions)
+  - Examples: "怎么配置堆叠面积图的描边为不同的颜色", "坐标轴文本样式怎么修改", "怎么设置折线图的颜色"
+  - Key patterns: "怎么/如何/为什么"
+- **implement** intent: Query asks "create/build/implement" new charts, components, or functionality
+  - Examples: "创建一个柱状图", "写一个", "实现"
+  - Key patterns: "创建/实现/添加/构建/改成/修改"
+
+**Additional Classification Examples:**
+- **solve**: "tooltip不显示怎么办", "图表渲染不出来", "颜色显示不正确", "数据格式错误", "点击事件没反应"
+- **implement**: "帮我写一个饼图", "实现拖拽功能", "添加一个图例", "创建一个仪表盘"
 
 **Assess Task Complexity:**
 Determine if the query is complex based on:
@@ -128,7 +139,7 @@ If complex, decompose into 2-4 subtasks, each subtask should:
 {
   "library": "detected_or_specified_library",
   "topic": "topic1, topic2, topic3",
-  "intent": "learn|implement|solve",
+  "intent": "implement|solve",
   "isComplexTask": false
 }
 \`\`\`
@@ -175,7 +186,7 @@ When to use this tool:
 
 Key features:
 - **Smart Library Detection**: Scans installed AntV libraries and recommends the best fit based on query and project dependencies.
-- **Topic & Intent Extraction**: Intelligently extracts technical topics and determines user intent (learn/implement/solve).
+- **Topic & Intent Extraction**: Intelligently extracts technical topics and determines user intent (implement/solve).
 - **Task Complexity Handling**: Detects complex tasks and decomposes them into manageable subtasks.
 - **Seamless Integration**: Prepares structured data for the query_antv_document tool to provide precise solutions.`,
   inputSchema: ExtractAntVTopicInputSchema,
