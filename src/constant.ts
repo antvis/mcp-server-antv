@@ -145,6 +145,7 @@ export const ANTV_LIBRARY_META = {
       <convention>
     - **Default to using the core \`@antv/s2\` package** for simple pivot tables or tables without complex interactions. If the user's request can be fulfilled with a basic \`PivotSheet\` or \`TableSheet\` instance, do not use a framework-specific wrapper.
     - **You MUST use the \`@antv/s2-react\` package and its \`SheetComponent\`** if the user's request involves advanced features such as building a trend analysis table (e.g., with in-cell mini charts), an editable table, or requires pre-built analysis components like \`Switch\` or \`Export\`.
+    - **React Ecosystem Dependencies**: Since \`@antv/s2-react\` and \`@antv/s2-react-components\` are React components, any code using them MUST also import \`React\` and use \`react-dom/client\` to render the application.
     - **The \`@antv/s2-vue\` library is unmaintained and MUST NOT be used.** For Vue.js implementations, you MUST generate code that manually wraps the core \`@antv/s2\` package within a standard Vue component.
   </convention>
     `,
