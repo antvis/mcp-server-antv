@@ -71,8 +71,8 @@ export async function queryDocRouter(params: {
   const { args, libraryId, topic, tokens } = params;
   if (args.channel === 'DeepWiki') {
     return await adaptedQueryDeepWiki({
-      repoName: libraryId,
-      question: args.topic,
+      repoName: args.library,
+      question: topic,
     });
 
   } else {

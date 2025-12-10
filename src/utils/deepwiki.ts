@@ -108,7 +108,7 @@ export async function queryDeepWiki(_params: {repoName: string, question: string
     const params = {
       ..._params,
     };
-    if (params.repoName.includes('/')) {
+    if (!params.repoName.includes('/')) {
       params.repoName = getRepoName(params.repoName as AntVLibrary);
     }
 
