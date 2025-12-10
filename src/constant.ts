@@ -50,7 +50,11 @@ export const ANTV_LIBRARY_META = {
     name: 'X6',
     description: 'Graph editing, flowcharts, diagram creation tools',
     keywords: '',
-    codeStyle: '',
+    codeStyle: `<convention>
+  - By default, edges should connect to the node's border, and text should be horizontally and vertically centered within the node.
+  - By default, When initializing a \`new Graph\`, ensure \`panning: true\` is set.
+</convention>
+`,
   },
   f2: {
     id: 'f2' as AntVLibrary,
