@@ -56,7 +56,9 @@ const QueryAntVDocumentInputSchema = z.object({
     .optional()
     .default('Context7')
     .describe(
-      'Specifies the query channel for documentation. Can be "Context7" or "DeepWiki". Defaults to "Context7".'
+      'Controls the trade-off between search speed and retrieval accuracy. ' +
+      'Use "Context7" (Default) for quick, interactive responses (~2s latency). ' +
+      'Use "DeepWiki" ONLY when the user explicitly requests "deep research", "high accuracy", "comprehensive analysis", or when the query is critical and requires verification, despite the slower speed (~20s latency).'
     ),
 });
 

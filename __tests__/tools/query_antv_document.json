@@ -7,7 +7,17 @@
     "properties": {
       "library": {
         "type": "string",
-        "enum": ["g2", "g6", "l7", "x6", "f2", "s2", "g", "ava", "adc"],
+        "enum": [
+          "g2",
+          "g6",
+          "l7",
+          "x6",
+          "f2",
+          "s2",
+          "g",
+          "ava",
+          "adc"
+        ],
         "description": "Specified AntV library type, intelligently identified based on user query"
       },
       "query": {
@@ -48,11 +58,28 @@
               "description": "Subtask topic"
             }
           },
-          "required": ["query", "topic"]
+          "required": [
+            "query",
+            "topic"
+          ]
         },
         "description": "Decomposed subtask list for complex tasks, supports batch processing"
+      },
+      "channel": {
+        "default": "Context7",
+        "description": "Controls the trade-off between search speed and retrieval accuracy. Use \"Context7\" (Default) for quick, interactive responses (~2s latency). Use \"DeepWiki\" ONLY when the user explicitly requests \"deep research\", \"high accuracy\", \"comprehensive analysis\", or when the query is critical and requires verification, despite the slower speed (~20s latency).",
+        "enum": [
+          "Context7",
+          "DeepWiki"
+        ],
+        "type": "string"
       }
     },
-    "required": ["library", "query", "topic", "intent"]
+    "required": [
+      "library",
+      "query",
+      "topic",
+      "intent"
+    ]
   }
 }
