@@ -8,7 +8,8 @@ jobs:
   release:
     runs-on: macos-latest
     if: startsWith(github.event.head_commit.message , 'chore(release):')
-
+    env:
+      NODE_OPTIONS: "--max-old-space-size=8192"
     steps:
       - uses: actions/checkout@v3
         with:
