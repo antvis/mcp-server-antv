@@ -57,8 +57,8 @@ const QueryAntVDocumentInputSchema = z.object({
     .default('Context7')
     .describe(
       'Controls the trade-off between search speed and retrieval accuracy. ' +
-      'Use "Context7" (Default) for quick, interactive responses (~2s latency). ' +
-      'Use "DeepWiki" ONLY when the user explicitly requests "deep research", "high accuracy", "comprehensive analysis", or when the query is critical and requires verification, despite the slower speed (~20s latency).'
+        'Use "Context7" (Default) for quick, interactive responses (~2s latency). ' +
+        'Use "DeepWiki" ONLY when the user explicitly requests "deep research", "high accuracy", "comprehensive analysis", or when the query is critical and requires verification, despite the slower speed (~20s latency).',
     ),
 });
 
@@ -66,9 +66,9 @@ type QueryAntVDocumentArgs = z.infer<typeof QueryAntVDocumentInputSchema>;
 
 export async function queryDocRouter(params: {
   args: QueryAntVDocumentArgs;
-  libraryId: string,
-  topic: string,
-  tokens?: number
+  libraryId: string;
+  topic: string;
+  tokens?: number;
 }) {
   const { args, libraryId, topic, tokens } = params;
   if (args.channel === 'DeepWiki') {
@@ -76,13 +76,8 @@ export async function queryDocRouter(params: {
       repoName: args.library,
       question: topic,
     });
-
   } else {
-    return await fetchLibraryDocumentation(
-      libraryId,
-      topic,
-      tokens,
-    );
+    return await fetchLibraryDocumentation(libraryId, topic, tokens);
   }
 }
 

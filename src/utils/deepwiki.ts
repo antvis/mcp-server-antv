@@ -1,6 +1,6 @@
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
-import EventSource from "eventsource";
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
+import EventSource from 'eventsource';
 import { logger } from './logger';
 import { AntVLibrary } from '../types';
 
@@ -41,28 +41,28 @@ async function getMcpClient(): Promise<Client> {
   // 开始初始化连接
   _connectingPromise = (async () => {
     try {
-      logger.info("DeepWiki MCP: 初始化连接...");
+      logger.info('DeepWiki MCP: 初始化连接...');
 
       const transport = new SSEClientTransport(
-        new URL("https://mcp.deepwiki.com/sse")
+        new URL('https://mcp.deepwiki.com/sse'),
       );
 
       const client = new Client(
         {
-          name: "deepwiki-node-client",
-          version: "1.0.0",
+          name: 'deepwiki-node-client',
+          version: '1.0.0',
         },
-        { capabilities: {} }
+        { capabilities: {} },
       );
 
       // 错误处理：监听传输层关闭或错误，以便下次重连
       transport.onerror = (err) => {
-        logger.error("DeepWiki MCP Transport Error:", err);
+        logger.error('DeepWiki MCP Transport Error:', err);
         resetClient(); // 出错时重置，下次调用会触发重连
       };
 
       transport.onclose = () => {
-        logger.info("DeepWiki MCP Connection Closed");
+        logger.info('DeepWiki MCP Connection Closed');
         resetClient();
       };
 
@@ -71,11 +71,11 @@ async function getMcpClient(): Promise<Client> {
       // 连接成功，赋值给模块级变量
       _client = client;
       _transport = transport;
-      logger.info("DeepWiki MCP: 连接成功");
+      logger.info('DeepWiki MCP: 连接成功');
 
       return client;
     } catch (error) {
-      logger.error("DeepWiki MCP: 连接失败", error);
+      logger.error('DeepWiki MCP: 连接失败', error);
       resetClient();
       throw error;
     } finally {
@@ -103,7 +103,10 @@ function resetClient() {
  * 查询 DeepWiki
  * 外部调用就像调用普通函数一样，无需关心连接管理
  */
-export async function queryDeepWiki(_params: {repoName: string, question: string}): Promise<string> {
+export async function queryDeepWiki(_params: {
+  repoName: string;
+  question: string;
+}): Promise<string> {
   try {
     const params = {
       ..._params,
@@ -117,7 +120,7 @@ export async function queryDeepWiki(_params: {repoName: string, question: string
 
     // 调用工具
     const result: any = await client.callTool({
-      name: "ask_question",
+      name: 'ask_question',
       arguments: params,
     });
 
@@ -127,27 +130,27 @@ export async function queryDeepWiki(_params: {repoName: string, question: string
     // result.content 是一个数组，可能包含 text, image 等
     // 这里我们使用 reduce 提取所有 text 类型的内容并拼接
     let answer = result.content
-      .filter((item: any) => item.type === "text")
+      .filter((item: any) => item.type === 'text')
       .map((item: any) => item.text)
-      .join("\n"); // 如果有多段文本，用换行符拼接
+      .join('\n'); // 如果有多段文本，用换行符拼接
 
-    const regex = /Wiki pages you might want to explore:|View this search on DeepWiki:/i;
+    const regex =
+      /Wiki pages you might want to explore:|View this search on DeepWiki:/i;
     const splitIndex = answer.search(regex);
     // 如果找到了标记 (splitIndex !== -1)
     if (splitIndex !== -1) {
       // 截取从开头到标记之前的部分，并清理末尾的空白
-      answer =  answer.slice(0, splitIndex).trimEnd();
+      answer = answer.slice(0, splitIndex).trimEnd();
     }
 
     if (!answer || answer.startsWith('Error')) {
       // 防御性编程：如果返回内容为空
-      throw new Error("DeepWiki return Empty/Error Answer, Answer = " + answer);
+      throw new Error('DeepWiki return Empty/Error Answer, Answer = ' + answer);
     }
 
     return answer;
-
   } catch (error) {
-    logger.error("DeepWiki Query Error:", error);
+    logger.error('DeepWiki Query Error:', error);
     // 根据业务需求，这里可以选择抛出错误，或者返回空字符串/错误提示字符串
     // 如果是网络断开等错误，resetClient 会在下一次调用时触发重连
     if (_client) {
@@ -159,15 +162,18 @@ export async function queryDeepWiki(_params: {repoName: string, question: string
   }
 }
 
-export async function adaptedQueryDeepWiki(_params: { repoName: string, question: string }) {
+export async function adaptedQueryDeepWiki(_params: {
+  repoName: string;
+  question: string;
+}) {
   try {
     const answer = await queryDeepWiki(_params);
-    return { documentation: answer }
+    return { documentation: answer };
   } catch (error) {
     return {
       documentation: null,
       error: error instanceof Error ? error.message : String(error),
-    }
+    };
   }
 }
 
@@ -177,7 +183,7 @@ export async function adaptedQueryDeepWiki(_params: { repoName: string, question
  */
 export async function closeDeepWikiConnection() {
   if (_transport) {
-    logger.info("DeepWiki MCP: 关闭连接...");
+    logger.info('DeepWiki MCP: 关闭连接...');
     // SDK 目前可能没有直接暴露 close 方法，通常关闭 transport 即可
     // SSEClientTransport 内部并没有显式的 close 方法暴露出来，
     // 但我们可以将引用置空，让 GC 回收，或者依赖进程退出
