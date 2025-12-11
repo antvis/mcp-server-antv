@@ -10,16 +10,16 @@ jobs:
     if: startsWith(github.event.head_commit.message , 'chore(release):')
     permissions:
       id-token: write
-      contents: read
+      contents: write
     env:
       NODE_OPTIONS: '--max-old-space-size=8192'
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
-          fetch-depth: '0'
+          fetch-depth: 0
 
       - name: Use Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 20
           registry-url: 'https://registry.npmjs.org/'
@@ -28,20 +28,32 @@ jobs:
         run: npm install
 
       - name: lint
-        run: |
-          npm run lint
+        run: npm run lint
 
       - name: build
-        run: |
-          npm run build
+        run: npm run build
         env:
           CI: false
 
       - name: test
-        run: |
-          npm run test
+        run: npm run test
 
-      - name: Release
+      - name: Get Version from package.json
+        id: get_version
+        run: echo "VERSION=$$(node -p "require('./package.json').version")" >> $$GITHUB_OUTPUT
+
+      - name: Publish to npm
+        run: npm publish --provenance --access public
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npm run release
+          CI: true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.get_version.outputs.VERSION }}
+          name: Release v${{ steps.get_version.outputs.VERSION }}
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
