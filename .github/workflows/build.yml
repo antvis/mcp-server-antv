@@ -22,5 +22,6 @@ jobs:
       - name: Run Continuous Integration
         run: |
           npm install
+          npm run lint
           npm run build
           npx vitest --watch=false
