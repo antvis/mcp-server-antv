@@ -126,10 +126,18 @@ export async function queryDeepWiki(_params: {repoName: string, question: string
     // ---------------------------------------------------------
     // result.content 是一个数组，可能包含 text, image 等
     // 这里我们使用 reduce 提取所有 text 类型的内容并拼接
-    const answer = result.content
+    let answer = result.content
       .filter((item: any) => item.type === "text")
       .map((item: any) => item.text)
       .join("\n"); // 如果有多段文本，用换行符拼接
+
+    const regex = /Wiki pages you might want to explore:|View this search on DeepWiki:/i;
+    const splitIndex = answer.search(regex);
+    // 如果找到了标记 (splitIndex !== -1)
+    if (splitIndex !== -1) {
+      // 截取从开头到标记之前的部分，并清理末尾的空白
+      answer =  answer.slice(0, splitIndex).trimEnd();
+    }
 
     if (!answer || answer.startsWith('Error')) {
       // 防御性编程：如果返回内容为空

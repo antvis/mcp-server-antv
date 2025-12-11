@@ -51,8 +51,7 @@ export const ANTV_LIBRARY_META = {
     description: 'Graph editing, flowcharts, diagram creation tools',
     keywords: '',
     codeStyle: `<convention>
-  - By default, edges should connect to the node's border, and text should be horizontally and vertically centered within the node.
-  - By default, When initializing a \`new Graph\`, ensure \`panning: true\` is set.
+  - By default, edges should connect to the node's border.
 </convention>
 `,
   },
