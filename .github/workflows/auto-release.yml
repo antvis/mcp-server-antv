@@ -8,6 +8,9 @@ jobs:
   release:
     runs-on: macos-latest
     if: startsWith(github.event.head_commit.message , 'chore(release):')
+    permissions:
+      id-token: write
+      contents: read
     env:
       NODE_OPTIONS: '--max-old-space-size=8192'
     steps:
@@ -19,6 +22,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 20
+          registry-url: 'https://registry.npmjs.org/'
 
       - name: Install dependencies
         run: npm install
@@ -40,5 +44,4 @@ jobs:
       - name: Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm config set //registry.npmjs.org/:_authToken ${NPM_TOKEN} & npm run release
+        run: npm run release
