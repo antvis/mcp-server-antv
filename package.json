@@ -1,6 +1,6 @@
 {
   "name": "@antv/mcp-server-antv",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "MCP Server for AntV visualization libraries development, which provides documentation context and examples for visualization developers.",
   "main": "build/index.js",
   "scripts": {
@@ -11,7 +11,6 @@
     "postbuild": "chmod +x build/index.js",
     "start": "npm run build && npx @modelcontextprotocol/inspector node build/index.js",
     "prepare": "npm run build",
-    "prepublishOnly": "npm run build",
     "release": "npm publish",
     "test": "vitest"
   },
@@ -35,6 +34,7 @@
   ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",
+    "eventsource": "^4.1.0",
     "zod": "^3.25.75"
   },
   "devDependencies": {

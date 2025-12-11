@@ -50,7 +50,10 @@ export const ANTV_LIBRARY_META = {
     name: 'X6',
     description: 'Graph editing, flowcharts, diagram creation tools',
     keywords: '',
-    codeStyle: '',
+    codeStyle: `<convention>
+  - By default, edges should connect to the node's border.
+</convention>
+`,
   },
   f2: {
     id: 'f2' as AntVLibrary,

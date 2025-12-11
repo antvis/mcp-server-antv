@@ -9,6 +9,7 @@ import {
   ANTV_LIBRARY_META,
   CONTEXT7_TOKENS,
 } from '../constant';
+import { adaptedQueryDeepWiki } from '../utils/deepwiki';
 
 const QueryAntVDocumentInputSchema = z.object({
   library: z
@@ -50,9 +51,40 @@ const QueryAntVDocumentInputSchema = z.object({
     .describe(
       'Decomposed subtask list for complex tasks, supports batch processing',
     ),
+  channel: z
+    .enum(['Context7', 'DeepWiki'])
+    .optional()
+    .default('Context7')
+    .describe(
+      'Controls the trade-off between search speed and retrieval accuracy. ' +
+      'Use "Context7" (Default) for quick, interactive responses (~2s latency). ' +
+      'Use "DeepWiki" ONLY when the user explicitly requests "deep research", "high accuracy", "comprehensive analysis", or when the query is critical and requires verification, despite the slower speed (~20s latency).'
+    ),
 });
 
 type QueryAntVDocumentArgs = z.infer<typeof QueryAntVDocumentInputSchema>;
+
+export async function queryDocRouter(params: {
+  args: QueryAntVDocumentArgs;
+  libraryId: string,
+  topic: string,
+  tokens?: number
+}) {
+  const { args, libraryId, topic, tokens } = params;
+  if (args.channel === 'DeepWiki') {
+    return await adaptedQueryDeepWiki({
+      repoName: args.library,
+      question: topic,
+    });
+
+  } else {
+    return await fetchLibraryDocumentation(
+      libraryId,
+      topic,
+      tokens,
+    );
+  }
+}
 
 async function handleComplexTask(
   args: QueryAntVDocumentArgs,
@@ -74,11 +106,12 @@ async function handleComplexTask(
       logger.info(
         `Processing subtask ${index + 1}/${subTasks.length}: ${subTask.topic}`,
       );
-      const { documentation, error } = await fetchLibraryDocumentation(
+      const { documentation, error } = await queryDocRouter({
+        args,
         libraryId,
-        subTask.topic,
-        tokenPerSubTask,
-      );
+        topic: subTask.topic,
+        tokens: tokenPerSubTask,
+      });
       return { task: subTask, documentation, error };
     } catch (error) {
       logger.error(`Failed to process subtask ${index + 1}:`, error);
@@ -241,11 +274,12 @@ When to use this tool:
         hasDocumentation = result.hasDocumentation;
       } else {
         // Handle simple query
-        const { documentation, error } = await fetchLibraryDocumentation(
+        const { documentation, error } = await queryDocRouter({
+          args,
           libraryId,
-          args.topic,
-          args.tokens,
-        );
+          topic: args.topic,
+          tokens: args.tokens,
+        });
         hasDocumentation =
           documentation !== null && documentation.trim() !== '';
         response = generateSimpleResponse(args, documentation, error);

@@ -16,6 +16,7 @@ class AntVMCPServer {
     // Register tools with validation
     [ExtractAntVTopicTool, QueryAntVDocumentTool].forEach((tool) => {
       const { name, description, inputSchema, run } = tool;
+      // @ts-ignore
       this.server.tool(name, description, inputSchema.shape, (async (
         args: any,
       ) => {
