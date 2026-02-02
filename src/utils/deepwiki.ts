@@ -1,5 +1,5 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import EventSource from 'eventsource';
 import { logger } from './logger';
 import { AntVLibrary } from '../types';
@@ -18,7 +18,7 @@ if (!global.EventSource) {
 // 2. 单例状态管理
 // ---------------------------------------------------------
 let _client: Client | null = null;
-let _transport: SSEClientTransport | null = null;
+let _transport: StreamableHTTPClientTransport | null = null;
 let _connectingPromise: Promise<Client> | null = null;
 
 /**
@@ -27,7 +27,7 @@ let _connectingPromise: Promise<Client> | null = null;
  */
 async function getMcpClient(): Promise<Client> {
   // 如果客户端已存在且传输层看似正常，直接返回
-  // 注意：SSEClientTransport 目前没有直观的 isConnected 属性，
+  // 注意：StreamableHTTPClientTransport 目前没有直观的 isConnected 属性，
   // 这里的检查主要是防止对象为空。更严谨的做法是监听 transport 的 close 事件来重置 _client。
   if (_client && _transport) {
     return _client;
@@ -43,8 +43,8 @@ async function getMcpClient(): Promise<Client> {
     try {
       logger.info('DeepWiki MCP: 初始化连接...');
 
-      const transport = new SSEClientTransport(
-        new URL('https://mcp.deepwiki.com/sse'),
+      const transport = new StreamableHTTPClientTransport(
+        new URL('https://mcp.deepwiki.com/mcp'),
       );
 
       const client = new Client(
@@ -185,7 +185,7 @@ export async function closeDeepWikiConnection() {
   if (_transport) {
     logger.info('DeepWiki MCP: 关闭连接...');
     // SDK 目前可能没有直接暴露 close 方法，通常关闭 transport 即可
-    // SSEClientTransport 内部并没有显式的 close 方法暴露出来，
+    // StreamableHTTPClientTransport 内部并没有显式的 close 方法暴露出来，
     // 但我们可以将引用置空，让 GC 回收，或者依赖进程退出
     // 如果 SSEClientTransport 实现了 close，则调用:
     // await _transport.close();
