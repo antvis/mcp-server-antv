@@ -65,14 +65,14 @@ jobs:
         run: |
           TAG_VERSION="${{ steps.meta.outputs.clean_version }}"
           PKG_VERSION=$(node -p "require('./package.json').version")
-          
+
           if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
             echo "Version mismatch: Tag ($TAG_VERSION) != Package ($PKG_VERSION). Syncing..."
             npm version $TAG_VERSION --no-git-tag-version --allow-same-version
           else
             echo "Versions match ($TAG_VERSION). Proceeding..."
           fi
-          
+
           npm publish --provenance --access public --tag ${{ steps.meta.outputs.npm_tag }}
         env:
           CI: true
