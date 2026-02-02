@@ -1,13 +1,12 @@
 name: 🚀 Auto Release
 on:
   push:
-    branches:
-      - main
+    tags:
+      - 'v*'
 
 jobs:
   release:
     runs-on: macos-latest
-    if: startsWith(github.event.head_commit.message , 'chore(release):')
     permissions:
       id-token: write
       contents: write
@@ -21,7 +20,7 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           registry-url: 'https://registry.npmjs.org/'
 
       - name: Install dependencies
@@ -38,22 +37,53 @@ jobs:
       - name: test
         run: npm run test
 
-      - name: Get Version from package.json
-        id: get_version
-        run: echo "VERSION=$$(node -p "require('./package.json').version")" >> $$GITHUB_OUTPUT
+      - name: Parse Version and Tag
+        id: meta
+        run: |
+          # 获取当前的 ref 名称，例如 v0.8.1-alpha.0
+          REF_NAME=${{ github.ref_name }}
+          echo "Current Ref: $REF_NAME"
+
+          # 去掉 'v' 前缀，得到 0.8.1-alpha.0
+          VERSION=${REF_NAME#v}
+          echo "clean_version=$VERSION" >> $GITHUB_OUTPUT
+
+          # 判断 tag 策略
+          if [[ "$VERSION" == *"-"* ]]; then
+            # 如果版本号带横杠 (如 -alpha.0)，提取横杠后的第一个单词作为 tag (如 alpha)
+            # 逻辑：取第一个 - 后面的内容，再取第一个 . 前面的内容
+            NPM_TAG=$(echo "$VERSION" | cut -d'-' -f2 | cut -d'.' -f1)
+            echo "Detected pre-release version. Setting npm tag to: $NPM_TAG"
+            echo "npm_tag=$NPM_TAG" >> $GITHUB_OUTPUT
+          else
+            # 否则就是正式版
+            echo "Detected stable version. Setting npm tag to: latest"
+            echo "npm_tag=latest" >> $GITHUB_OUTPUT
+          fi
 
       - name: Publish to npm
-        run: npm publish --provenance --access public
+        run: |
+          TAG_VERSION="${{ steps.meta.outputs.clean_version }}"
+          PKG_VERSION=$(node -p "require('./package.json').version")
+
+          if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
+            echo "Version mismatch: Tag ($TAG_VERSION) != Package ($PKG_VERSION). Syncing..."
+            npm version $TAG_VERSION --no-git-tag-version --allow-same-version
+          else
+            echo "Versions match ($TAG_VERSION). Proceeding..."
+          fi
+
+          npm publish --provenance --access public --tag ${{ steps.meta.outputs.npm_tag }}
         env:
           CI: true
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: v${{ steps.get_version.outputs.VERSION }}
-          name: Release v${{ steps.get_version.outputs.VERSION }}
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
           generate_release_notes: true
           draft: false
-          prerelease: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
