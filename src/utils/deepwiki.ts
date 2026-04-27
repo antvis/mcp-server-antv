@@ -211,6 +211,10 @@ export async function queryDeepWiki(_params: {
       .map((item: any) => item.text)
       .join('\n'); // 如果有多段文本，用换行符拼接
 
+    if (result.isError) {
+      throw new Error('DeepWiki Tool Error, Answer = ' + answer);
+    }
+
     const regex =
       /Wiki pages you might want to explore:|View this search on DeepWiki:/i;
     const splitIndex = answer.search(regex);
