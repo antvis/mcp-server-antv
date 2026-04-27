@@ -86,7 +86,11 @@ async function closeMcpConnection(params: {
   }
 
   try {
-    await client?.close();
+    if (client) {
+      await client.close();
+    } else {
+      await transport?.close();
+    }
   } catch (error) {
     logger.error('DeepWiki MCP Client Close Error:', error);
     try {
@@ -120,19 +124,21 @@ async function getMcpClient(): Promise<Client> {
 
   // 开始初始化连接
   _connectingPromise = (async () => {
+    let connection: McpConnection | null = null;
     try {
       logger.info('DeepWiki MCP: 初始化连接...');
-      const { client, transport } = createMcpConnection();
-      await connectMcpConnection({ client, transport, isShared: true });
+      connection = createMcpConnection();
+      await connectMcpConnection({ ...connection, isShared: true });
 
       // 连接成功，赋值给模块级变量
-      _client = client;
-      _transport = transport;
+      _client = connection.client;
+      _transport = connection.transport;
       logger.info('DeepWiki MCP: 连接成功');
 
-      return client;
+      return connection.client;
     } catch (error) {
       logger.error('DeepWiki MCP: 连接失败', error);
+      await closeMcpConnection(connection ?? {});
       resetClient();
       throw error;
     } finally {
@@ -259,6 +265,10 @@ export async function adaptedQueryDeepWiki(_params: {
  * 供 EggJS 应用在 app.beforeClose 时调用
  */
 export async function closeDeepWikiConnection() {
+  if (_connectingPromise) {
+    await _connectingPromise.catch(() => {});
+  }
+
   if (_client || _transport) {
     logger.info('DeepWiki MCP: 关闭连接...');
     await closeMcpConnection({

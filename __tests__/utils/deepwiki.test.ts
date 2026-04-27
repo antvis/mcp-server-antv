@@ -85,6 +85,8 @@ describe('adaptedQueryDeepWiki', () => {
 
     // DeepWiki 对不存在的仓库可能返回空或报错
     // adaptedQueryDeepWiki 应该把异常吞掉，返回 error 字段
-    expect(result.documentation === null || typeof result.error === 'string').toBe(true);
+    expect(
+      result.documentation === null || typeof result.error === 'string',
+    ).toBe(true);
   }, 120000);
 });
