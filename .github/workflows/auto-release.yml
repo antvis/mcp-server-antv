@@ -13,18 +13,18 @@ jobs:
     env:
       NODE_OPTIONS: '--max-old-space-size=8192'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Use Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 24
           registry-url: 'https://registry.npmjs.org/'
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --ignore-scripts
 
       - name: lint
         run: npm run lint
@@ -73,12 +73,12 @@ jobs:
             echo "Versions match ($TAG_VERSION). Proceeding..."
           fi
 
-          npm publish --provenance --access public --tag ${{ steps.meta.outputs.npm_tag }}
+          npm publish --ignore-scripts --provenance --access public --tag ${{ steps.meta.outputs.npm_tag }}
         env:
           CI: true
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.ref_name }}
           name: Release ${{ github.ref_name }}
