@@ -4,6 +4,19 @@ import EventSource from 'eventsource';
 import { logger } from './logger';
 import { AntVLibrary } from '../types';
 
+export type DeepWikiConnectionMode = 'keep-alive' | 'close-after-query';
+
+type DeepWikiQueryParams = {
+  repoName: string;
+  question: string;
+  connectionMode?: DeepWikiConnectionMode;
+};
+
+type McpConnection = {
+  client: Client;
+  transport: StreamableHTTPClientTransport;
+};
+
 // ---------------------------------------------------------
 // 1. 全局环境配置
 // ---------------------------------------------------------
@@ -20,6 +33,77 @@ if (!global.EventSource) {
 let _client: Client | null = null;
 let _transport: StreamableHTTPClientTransport | null = null;
 let _connectingPromise: Promise<Client> | null = null;
+
+function createMcpConnection(): McpConnection {
+  const transport = new StreamableHTTPClientTransport(
+    new URL('https://mcp.deepwiki.com/mcp'),
+  );
+
+  const client = new Client(
+    {
+      name: 'deepwiki-node-client',
+      version: '1.0.0',
+    },
+    { capabilities: {} },
+  );
+
+  return { client, transport };
+}
+
+async function connectMcpConnection(params: {
+  client: Client;
+  transport: StreamableHTTPClientTransport;
+  isShared?: boolean;
+}) {
+  const { client, transport, isShared = false } = params;
+
+  transport.onerror = (err) => {
+    logger.error('DeepWiki MCP Transport Error:', err);
+    if (isShared) {
+      resetClient();
+    }
+  };
+
+  transport.onclose = () => {
+    logger.info('DeepWiki MCP Connection Closed');
+    if (isShared) {
+      resetClient();
+    }
+  };
+
+  await client.connect(transport);
+}
+
+async function closeMcpConnection(params: {
+  client?: Client | null;
+  transport?: StreamableHTTPClientTransport | null;
+  isShared?: boolean;
+}) {
+  const { client, transport, isShared = false } = params;
+
+  if (!client && !transport) {
+    return;
+  }
+
+  try {
+    if (client) {
+      await client.close();
+    } else {
+      await transport?.close();
+    }
+  } catch (error) {
+    logger.error('DeepWiki MCP Client Close Error:', error);
+    try {
+      await transport?.close();
+    } catch (transportError) {
+      logger.error('DeepWiki MCP Transport Close Error:', transportError);
+    }
+  } finally {
+    if (isShared) {
+      resetClient();
+    }
+  }
+}
 
 /**
  * 获取或初始化 MCP 客户端 (单例模式)
@@ -40,42 +124,21 @@ async function getMcpClient(): Promise<Client> {
 
   // 开始初始化连接
   _connectingPromise = (async () => {
+    let connection: McpConnection | null = null;
     try {
       logger.info('DeepWiki MCP: 初始化连接...');
-
-      const transport = new StreamableHTTPClientTransport(
-        new URL('https://mcp.deepwiki.com/mcp'),
-      );
-
-      const client = new Client(
-        {
-          name: 'deepwiki-node-client',
-          version: '1.0.0',
-        },
-        { capabilities: {} },
-      );
-
-      // 错误处理：监听传输层关闭或错误，以便下次重连
-      transport.onerror = (err) => {
-        logger.error('DeepWiki MCP Transport Error:', err);
-        resetClient(); // 出错时重置，下次调用会触发重连
-      };
-
-      transport.onclose = () => {
-        logger.info('DeepWiki MCP Connection Closed');
-        resetClient();
-      };
-
-      await client.connect(transport);
+      connection = createMcpConnection();
+      await connectMcpConnection({ ...connection, isShared: true });
 
       // 连接成功，赋值给模块级变量
-      _client = client;
-      _transport = transport;
+      _client = connection.client;
+      _transport = connection.transport;
       logger.info('DeepWiki MCP: 连接成功');
 
-      return client;
+      return connection.client;
     } catch (error) {
       logger.error('DeepWiki MCP: 连接失败', error);
+      await closeMcpConnection(connection ?? {});
       resetClient();
       throw error;
     } finally {
@@ -106,22 +169,36 @@ function resetClient() {
 export async function queryDeepWiki(_params: {
   repoName: string;
   question: string;
+  connectionMode?: DeepWikiConnectionMode;
 }): Promise<string> {
+  let localConnection: McpConnection | null = null;
   try {
-    const params = {
+    const params: DeepWikiQueryParams = {
       ..._params,
     };
     if (!params.repoName.includes('/')) {
       params.repoName = getRepoName(params.repoName as AntVLibrary);
     }
 
-    // 获取单例客户端 (自动处理连接)
-    const client = await getMcpClient();
+    let client: Client;
+    if (params.connectionMode === 'close-after-query') {
+      logger.info('DeepWiki MCP: 初始化一次性连接...');
+      localConnection = createMcpConnection();
+      await connectMcpConnection(localConnection);
+      client = localConnection.client;
+      logger.info('DeepWiki MCP: 一次性连接成功');
+    } else {
+      // 获取单例客户端 (自动处理连接)
+      client = await getMcpClient();
+    }
 
     // 调用工具
     const result: any = await client.callTool({
       name: 'ask_question',
-      arguments: params,
+      arguments: {
+        repoName: params.repoName,
+        question: params.question,
+      },
     });
 
     // ---------------------------------------------------------
@@ -133,6 +210,10 @@ export async function queryDeepWiki(_params: {
       .filter((item: any) => item.type === 'text')
       .map((item: any) => item.text)
       .join('\n'); // 如果有多段文本，用换行符拼接
+
+    if (result.isError) {
+      throw new Error('DeepWiki Tool Error, Answer = ' + answer);
+    }
 
     const regex =
       /Wiki pages you might want to explore:|View this search on DeepWiki:/i;
@@ -159,12 +240,18 @@ export async function queryDeepWiki(_params: {
       // resetClient();
     }
     throw error;
+  } finally {
+    if (localConnection) {
+      logger.info('DeepWiki MCP: 关闭一次性连接...');
+      await closeMcpConnection(localConnection);
+    }
   }
 }
 
 export async function adaptedQueryDeepWiki(_params: {
   repoName: string;
   question: string;
+  connectionMode?: DeepWikiConnectionMode;
 }) {
   try {
     const answer = await queryDeepWiki(_params);
@@ -182,16 +269,17 @@ export async function adaptedQueryDeepWiki(_params: {
  * 供 EggJS 应用在 app.beforeClose 时调用
  */
 export async function closeDeepWikiConnection() {
-  if (_transport) {
-    logger.info('DeepWiki MCP: 关闭连接...');
-    // SDK 目前可能没有直接暴露 close 方法，通常关闭 transport 即可
-    // StreamableHTTPClientTransport 内部并没有显式的 close 方法暴露出来，
-    // 但我们可以将引用置空，让 GC 回收，或者依赖进程退出
-    // 如果 SSEClientTransport 实现了 close，则调用:
-    // await _transport.close();
+  if (_connectingPromise) {
+    await _connectingPromise.catch(() => {});
+  }
 
-    // 目前 SDK 版本可以直接置空
-    resetClient();
+  if (_client || _transport) {
+    logger.info('DeepWiki MCP: 关闭连接...');
+    await closeMcpConnection({
+      client: _client,
+      transport: _transport,
+      isShared: true,
+    });
   }
 }
 
